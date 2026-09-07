@@ -14,8 +14,4 @@ return [
         'driver' => 'file',
         'store' => 'database',
     ],
-    'providers' => [
-        App\Providers\AppServiceProvider::class,
-        App\Providers\FortifyServiceProvider::class,
-    ],
 ];
