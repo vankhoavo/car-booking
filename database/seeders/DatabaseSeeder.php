@@ -14,12 +14,15 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        if (! User::query()->exists()) {
-            User::factory()->create([
-                'name' => 'Test User',
-                'email' => 'test@example.com',
-            ]);
-        }
+        User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            ['name' => 'Test User', 'role' => 'user', 'password' => 'password'],
+        );
+
+        User::updateOrCreate(
+            ['email' => 'admin@carbooking.test'],
+            ['name' => 'Quản trị viên', 'role' => 'admin', 'password' => 'Admin@123456'],
+        );
 
         foreach ([
             ['name' => 'Toyota Vios', 'brand' => 'Toyota', 'model' => 'Vios', 'type' => 'Sedan', 'seats' => 5, 'description' => 'Xe sedan tiết kiệm, phù hợp di chuyển nội thành và đường dài.', 'image' => null, 'price' => 650000, 'status' => 'available'],
