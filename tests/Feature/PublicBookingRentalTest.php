@@ -44,6 +44,42 @@ class PublicBookingRentalTest extends TestCase
         ]);
     }
 
+    public function test_rejects_booking_when_passengers_exceed_vehicle_capacity(): void
+    {
+        $vehicle = Vehicle::create([
+            'name' => 'Toyota Vios', 'brand' => 'Toyota', 'model' => 'Vios',
+            'type' => 'Sedan', 'seats' => 5, 'price' => 650000, 'status' => 'available',
+        ]);
+
+        $response = $this->post('/dat-xe', [
+            'customer_name' => 'Customer', 'phone' => '0901234567', 'email' => 'customer@example.com',
+            'pickup_location' => 'Da Nang', 'destination' => 'Hoi An',
+            'travel_date' => now()->addDay()->toDateString(), 'pickup_time' => '09:00',
+            'passengers' => 6, 'vehicle_id' => $vehicle->id, 'notes' => null,
+        ]);
+
+        $response->assertSessionHasErrors('passengers');
+        $this->assertDatabaseMissing('bookings', ['email' => 'customer@example.com']);
+    }
+
+    public function test_rejects_rental_when_passengers_exceed_vehicle_capacity(): void
+    {
+        $vehicle = Vehicle::create([
+            'name' => 'Toyota Innova', 'brand' => 'Toyota', 'model' => 'Innova',
+            'type' => 'MPV', 'seats' => 7, 'price' => 900000, 'status' => 'available',
+        ]);
+
+        $response = $this->post('/thue-xe', [
+            'customer_name' => 'Customer', 'phone' => '0901234567', 'email' => 'rental@example.com',
+            'vehicle_id' => $vehicle->id, 'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDays(2)->toDateString(), 'pickup_location' => 'Da Nang',
+            'return_location' => 'Hoi An', 'passengers' => 8, 'notes' => null,
+        ]);
+
+        $response->assertSessionHasErrors('passengers');
+        $this->assertDatabaseMissing('rentals', ['email' => 'rental@example.com']);
+    }
+
     public function test_rejects_an_unavailable_rental_period(): void
     {
         $vehicle = Vehicle::create([
