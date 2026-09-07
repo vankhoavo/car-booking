@@ -14,7 +14,7 @@ class Booking extends Model
 
     protected $casts = ['travel_date' => 'date'];
 
-    /** @return BelongsTo<Vehicle, Booking> */
+    /** @return BelongsTo<Vehicle, $this> */
     public function vehicle()
     {
         return $this->belongsTo(Vehicle::class);
