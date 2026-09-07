@@ -12,14 +12,12 @@ class Rental extends Model
         'pickup_location', 'return_location', 'passengers', 'notes', 'status',
     ];
 
-    protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-    ];
+    protected $casts = ['start_date' => 'date', 'end_date' => 'date'];
 
-    /** @return BelongsTo<Vehicle, Rental> */
     public function vehicle(): BelongsTo
     {
-        return $this->belongsTo(Vehicle::class);
+        /** @var BelongsTo<Vehicle, Rental> $relation */
+        $relation = $this->belongsTo(Vehicle::class);
+        return $relation;
     }
 }
