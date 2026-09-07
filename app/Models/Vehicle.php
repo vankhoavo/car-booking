@@ -7,23 +7,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Vehicle extends Model
 {
-    protected $fillable = [
-        'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status',
-    ];
+    protected $fillable = ['name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status'];
+    protected $casts = ['price' => 'decimal:2'];
 
-    protected $casts = [
-        'price' => 'decimal:2',
-    ];
-
-    /** @return HasMany<Booking, Vehicle> */
     public function bookings(): HasMany
     {
-        return $this->hasMany(Booking::class);
+        /** @var HasMany<Booking, Vehicle> $relation */
+        $relation = $this->hasMany(Booking::class);
+        return $relation;
     }
 
-    /** @return HasMany<Rental, Vehicle> */
     public function rentals(): HasMany
     {
-        return $this->hasMany(Rental::class);
+        /** @var HasMany<Rental, Vehicle> $relation */
+        $relation = $this->hasMany(Rental::class);
+        return $relation;
     }
 }
