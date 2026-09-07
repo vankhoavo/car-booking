@@ -31,6 +31,9 @@ export default defineConfig({
             formVariants: true,
         }),
     ]),
+    checks: {
+        pluginTimings: false,
+    },
     server: {
         watch: {
             ignored: [
