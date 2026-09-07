@@ -8,6 +8,7 @@ use App\Models\Rental;
 use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,15 +35,24 @@ class BookingController extends Controller
     {
         $data = $request->validated();
 
-        if (! empty($data['vehicle_id'])) {
-            $vehicle = Vehicle::query()->whereKey($data['vehicle_id'])->where('status', 'available')->first();
+        if (empty($data['vehicle_id'])) {
+            Booking::create($data + ['status' => 'pending']);
 
-            if (! $vehicle) {
-                return back()->withErrors(['vehicle_id' => 'Xe hiện không khả dụng. Vui lòng chọn xe khác.'])->withInput();
+            return back()->with('success', 'Đặt xe thành công. Chúng tôi sẽ liên hệ để xác nhận chuyến đi.');
+        }
+
+        $conflict = DB::transaction(function () use ($data): bool {
+            $vehicle = Vehicle::query()
+                ->whereKey($data['vehicle_id'])
+                ->lockForUpdate()
+                ->first();
+
+            if (! $vehicle || $vehicle->status !== 'available') {
+                return true;
             }
 
             if ($data['passengers'] > $vehicle->seats) {
-                return back()->withErrors(['passengers' => "Xe {$vehicle->name} chỉ có {$vehicle->seats} chỗ."])->withInput();
+                return true;
             }
 
             $bookingConflict = Booking::query()
@@ -59,11 +69,27 @@ class BookingController extends Controller
                 ->exists();
 
             if ($bookingConflict || $rentalConflict) {
-                return back()->withErrors(['vehicle_id' => 'Xe đã có lịch trong ngày bạn chọn. Vui lòng chọn xe khác hoặc ngày khác.'])->withInput();
+                return true;
             }
-        }
 
-        Booking::create($data + ['status' => 'pending']);
+            Booking::create($data + ['status' => 'pending']);
+
+            return false;
+        });
+
+        if ($conflict) {
+            $vehicle = Vehicle::query()->find($data['vehicle_id']);
+
+            if (! $vehicle || $vehicle->status !== 'available') {
+                return back()->withErrors(['vehicle_id' => 'Xe hiện không khả dụng. Vui lòng chọn xe khác.'])->withInput();
+            }
+
+            if ($data['passengers'] > $vehicle->seats) {
+                return back()->withErrors(['passengers' => "Xe {$vehicle->name} chỉ có {$vehicle->seats} chỗ."])->withInput();
+            }
+
+            return back()->withErrors(['vehicle_id' => 'Xe đã có lịch trong ngày bạn chọn. Vui lòng chọn xe khác hoặc ngày khác.'])->withInput();
+        }
 
         return back()->with('success', 'Đặt xe thành công. Chúng tôi sẽ liên hệ để xác nhận chuyến đi.');
     }
