@@ -25,7 +25,7 @@ class StoreBookingRequest extends FormRequest
         return [
             'customer_name' => ['required', 'string', 'max:120'],
             'phone' => ['required', 'regex:/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/'],
-            'email' => ['required', 'email:rfc,dns', 'max:190'],
+            'email' => ['required', 'email:rfc', 'max:190'],
             'pickup_location' => ['required', 'string', 'max:255'],
             'destination' => ['required', 'string', 'max:255'],
             'travel_date' => ['required', 'date', 'after_or_equal:today'],
