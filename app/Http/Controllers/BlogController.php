@@ -13,6 +13,10 @@ class BlogController extends Controller
         return Inertia::render('blog/Index', [
             'posts' => BlogPost::query()
                 ->where('is_published', true)
+                ->where(function ($query) {
+                    $query->whereNull('published_at')
+                        ->orWhere('published_at', '<=', now());
+                })
                 ->orderByDesc('published_at')
                 ->orderByDesc('id')
                 ->get(['id', 'title', 'slug', 'excerpt', 'image', 'published_at']),
@@ -23,6 +27,10 @@ class BlogController extends Controller
     {
         $post = BlogPost::query()
             ->where('is_published', true)
+            ->where(function ($query) {
+                $query->whereNull('published_at')
+                    ->orWhere('published_at', '<=', now());
+            })
             ->where('slug', $slug)
             ->firstOrFail();
 
