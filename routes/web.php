@@ -6,6 +6,9 @@ use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
+Route::inertia('/dat-xe', 'booking/Index')->name('booking.index');
+Route::inertia('/thue-xe', 'rental/Index')->name('rental.index');
+Route::inertia('/tour', 'tour/Index')->name('tour.index');
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
