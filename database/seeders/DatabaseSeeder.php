@@ -19,8 +19,8 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Test User', 'role' => 'user', 'password' => fake()->password(16)],
         );
 
-        $adminEmail = env('ADMIN_EMAIL');
-        $adminPassword = env('ADMIN_PASSWORD');
+        $adminEmail = config('services.admin.email');
+        $adminPassword = config('services.admin.password');
 
         if (filled($adminEmail) && filled($adminPassword)) {
             User::updateOrCreate(
@@ -44,8 +44,8 @@ class DatabaseSeeder extends Seeder
         }
 
         foreach ([
-            ['slug' => 'kinh-nghiem-thue-xe-theo-ngay', 'title' => 'Kinh nghiệm thuê xe theo ngày', 'excerpt' => 'Những điều nên kiểm tra trước khi chọn xe và gửi yêu cầu thuê.', 'content' => 'Kiểm tra số chỗ, thời gian thuê, điểm nhận trả và tình trạng xe. Hãy gửi thông tin đầy đủ để chúng tôi tư vấn và xác nhận lịch xe phù hợp.', 'image' => null, 'published_at' => now()->toDateString(), 'is_published' => true],
-            ['slug' => 'cach-chon-xe-cho-chuyen-di-gia-dinh', 'title' => 'Cách chọn xe cho chuyến đi gia đình', 'excerpt' => 'Ưu tiên số chỗ, hành lý và sự thoải mái để chuyến đi nhẹ nhàng hơn.', 'content' => 'Nhóm đông nên ưu tiên xe 7 chỗ. Nếu mang nhiều hành lý, nên chọn không gian cabin rộng và xác nhận trước nhu cầu với đơn vị cung cấp dịch vụ.', 'image' => null, 'published_at' => now()->subDay()->toDateString(), 'is_published' => true],
+            ['slug' => 'kinh-nghiem-thue-xe-theo-ngay', 'title' => 'Kinh nghiệm thuê xe theo ngày', 'excerpt' => 'Những điều nên kiểm tra trước khi chọn xe và gửi yêu cầu thuê.', 'content' => 'Kiểm tra số chỗ, thời gian thuê, điểm nhận trả và tình trạng xe. Hãy gửi thông tin đầy đủ để chúng tôi tư vấn và xác nhận lịch xe phù hợp.', 'image' => null, 'published_at' => now(), 'is_published' => true],
+            ['slug' => 'cach-chon-xe-cho-chuyen-di-gia-dinh', 'title' => 'Cách chọn xe cho chuyến đi gia đình', 'excerpt' => 'Ưu tiên số chỗ, hành lý và sự thoải mái để chuyến đi nhẹ nhàng hơn.', 'content' => 'Nhóm đông nên ưu tiên xe 7 chỗ. Nếu mang nhiều hành lý, nên chọn không gian cabin rộng và xác nhận trước nhu cầu với đơn vị cung cấp dịch vụ.', 'image' => null, 'published_at' => now()->subDay(), 'is_published' => true],
         ] as $post) {
             BlogPost::updateOrCreate(['slug' => $post['slug']], $post);
         }
