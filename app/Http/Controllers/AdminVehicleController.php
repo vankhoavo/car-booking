@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
+use App\Models\Rental;
 use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +36,15 @@ class AdminVehicleController extends Controller
 
     public function destroy(Vehicle $vehicle): RedirectResponse
     {
+        $hasOrders = Booking::query()->where('vehicle_id', $vehicle->id)->exists()
+            || Rental::query()->where('vehicle_id', $vehicle->id)->exists();
+
+        if ($hasOrders) {
+            return back()->withErrors([
+                'vehicle' => 'Không thể xóa xe đã có đơn đặt hoặc đơn thuê. Hãy chuyển xe sang trạng thái "Ngừng sử dụng" thay vì xóa.',
+            ]);
+        }
+
         $vehicle->delete();
 
         return back()->with('success', 'Đã xóa xe.');
