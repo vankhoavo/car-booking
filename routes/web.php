@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminBlogController;
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminRentalController;
@@ -41,6 +42,10 @@ Route::prefix('admin')
         Route::put('/bookings/{booking}', [AdminBookingController::class, 'update'])->name('admin.bookings.update');
         Route::get('/rentals', [AdminRentalController::class, 'index'])->name('admin.rentals.index');
         Route::put('/rentals/{rental}', [AdminRentalController::class, 'update'])->name('admin.rentals.update');
+        Route::get('/blog', [AdminBlogController::class, 'index'])->name('admin.blog.index');
+        Route::post('/blog', [AdminBlogController::class, 'store'])->name('admin.blog.store');
+        Route::put('/blog/{blogPost}', [AdminBlogController::class, 'update'])->name('admin.blog.update');
+        Route::delete('/blog/{blogPost}', [AdminBlogController::class, 'destroy'])->name('admin.blog.destroy');
     });
 
 Route::prefix('{current_team}')
