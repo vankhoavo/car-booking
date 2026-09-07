@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { CalendarDays, CarFront, CheckCircle2, Mail, MapPin, Phone, Users } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 
 interface Vehicle {
     id: number;
@@ -20,7 +20,13 @@ const page = usePage();
 const form = useForm({ customer_name:'', phone:'', email:'', vehicle_id: props.vehicles[0]?.id ?? null, start_date:'', end_date:'', pickup_location:'', return_location:'', passengers:1, notes:'' });
 const minDate = new Date().toISOString().slice(0,10);
 const selectedVehicle = computed(() => props.vehicles.find((v) => v.id === form.vehicle_id));
+const passengerLimit = computed(() => selectedVehicle.value?.seats ?? 60);
 const success = computed(() => page.props.flash?.success as string|undefined);
+watch(passengerLimit, (limit) => {
+    if (form.passengers > limit) {
+        form.passengers = limit;
+    }
+});
 const submit = () => form.post('/thue-xe', { preserveScroll:true, onSuccess:() => form.reset('customer_name','phone','email','start_date','end_date','pickup_location','return_location','notes') });
 </script>
 
@@ -43,7 +49,7 @@ const submit = () => form.post('/thue-xe', { preserveScroll:true, onSuccess:() =
 <div class="rounded-2xl bg-slate-50 p-4"><p class="text-xs font-bold uppercase text-slate-400">Xe đã chọn</p><p class="mt-1 font-black">{{ selectedVehicle?.name || 'Chọn một xe bên trái' }}</p><p v-if="selectedVehicle" class="mt-1 text-sm text-slate-500">{{ selectedVehicle.seats }} chỗ · {{ selectedVehicle.brand }}</p></div>
 <div class="grid gap-3 sm:grid-cols-2"><label><span class="mb-1.5 block text-sm font-semibold">Ngày bắt đầu <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><CalendarDays class="size-4 text-indigo-600" /><input v-model="form.start_date" :min="minDate" type="date" class="w-full border-0 p-0 outline-none focus:ring-0" /></div><p v-if="form.errors.start_date" class="mt-1 text-xs text-rose-600">{{ form.errors.start_date }}</p></label><label><span class="mb-1.5 block text-sm font-semibold">Ngày kết thúc <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><CalendarDays class="size-4 text-indigo-600" /><input v-model="form.end_date" :min="form.start_date || minDate" type="date" class="w-full border-0 p-0 outline-none focus:ring-0" /></div><p v-if="form.errors.end_date" class="mt-1 text-xs text-rose-600">{{ form.errors.end_date }}</p></label></div>
 <div class="grid gap-3 sm:grid-cols-2"><label><span class="mb-1.5 block text-sm font-semibold">Điểm nhận xe <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><MapPin class="size-4 text-indigo-600" /><input v-model="form.pickup_location" class="w-full border-0 p-0 outline-none focus:ring-0" /></div><p v-if="form.errors.pickup_location" class="mt-1 text-xs text-rose-600">{{ form.errors.pickup_location }}</p></label><label><span class="mb-1.5 block text-sm font-semibold">Điểm trả xe <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><MapPin class="size-4 text-indigo-600" /><input v-model="form.return_location" class="w-full border-0 p-0 outline-none focus:ring-0" /></div><p v-if="form.errors.return_location" class="mt-1 text-xs text-rose-600">{{ form.errors.return_location }}</p></label></div>
-<label><span class="mb-1.5 block text-sm font-semibold">Số lượng người <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><Users class="size-4 text-indigo-600" /><select v-model="form.passengers" class="w-full border-0 bg-transparent p-0 outline-none focus:ring-0"><option v-for="n in 12" :key="n" :value="n">{{ n }} người</option></select></div><p v-if="form.errors.passengers" class="mt-1 text-xs text-rose-600">{{ form.errors.passengers }}</p></label>
+<label><span class="mb-1.5 block text-sm font-semibold">Số lượng người <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><Users class="size-4 text-indigo-600" /><select v-model="form.passengers" class="w-full border-0 bg-transparent p-0 outline-none focus:ring-0"><option v-for="n in passengerLimit" :key="n" :value="n">{{ n }} người</option></select></div><p v-if="form.errors.passengers" class="mt-1 text-xs text-rose-600">{{ form.errors.passengers }}</p></label>
 <label><span class="mb-1.5 block text-sm font-semibold">Ghi chú</span><textarea v-model="form.notes" rows="3" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" /></label>
 <button :disabled="form.processing || !selectedVehicle" class="w-full rounded-2xl bg-indigo-600 px-5 py-3.5 font-bold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60">{{ form.processing ? 'Đang gửi...' : 'Gửi yêu cầu thuê xe' }}</button>
 <p class="text-center text-xs text-slate-400">Chúng tôi sẽ kiểm tra lịch xe và liên hệ xác nhận.</p>
