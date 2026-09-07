@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Rental;
+use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,36 @@ class AdminBookingController extends Controller
 
             $vehicle = $lockedBooking->vehicle()->lockForUpdate()->first();
 
+            if (! $vehicle && $lockedBooking->vehicle_id === null) {
+                $vehicle = Vehicle::query()
+                    ->where('status', 'available')
+                    ->where('seats', '>=', $lockedBooking->passengers)
+                    ->orderBy('seats')
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get()
+                    ->first(function ($candidate) use ($lockedBooking): bool {
+                        $bookingConflict = Booking::query()
+                            ->where('vehicle_id', $candidate->id)
+                            ->whereDate('travel_date', $lockedBooking->travel_date)
+                            ->whereIn('status', ['pending', 'confirmed'])
+                            ->exists();
+
+                        $rentalConflict = Rental::query()
+                            ->where('vehicle_id', $candidate->id)
+                            ->whereIn('status', ['pending', 'confirmed'])
+                            ->whereDate('start_date', '<=', $lockedBooking->travel_date)
+                            ->whereDate('end_date', '>=', $lockedBooking->travel_date)
+                            ->exists();
+
+                        return ! $bookingConflict && ! $rentalConflict;
+                    });
+
+                if ($vehicle) {
+                    $lockedBooking->vehicle_id = $vehicle->id;
+                }
+            }
+
             if (! $vehicle || $vehicle->status !== 'available') {
                 return 'unavailable';
             }
@@ -84,7 +115,10 @@ class AdminBookingController extends Controller
                 return 'conflict';
             }
 
-            $lockedBooking->update(['status' => 'confirmed']);
+            $lockedBooking->update([
+                'vehicle_id' => $vehicle->id,
+                'status' => 'confirmed',
+            ]);
 
             return 'confirmed';
         });
@@ -92,7 +126,7 @@ class AdminBookingController extends Controller
         return match ($result) {
             'confirmed' => back()->with('success', 'Đã xác nhận đơn đặt xe.'),
             'updated', 'unchanged' => back()->with('success', 'Đã cập nhật trạng thái đơn đặt xe.'),
-            'unavailable' => back()->withErrors(['status' => 'Không thể xác nhận: xe hiện không khả dụng.']),
+            'unavailable' => back()->withErrors(['status' => 'Không thể xác nhận: không có xe khả dụng phù hợp.']),
             'capacity' => back()->withErrors(['status' => 'Không thể xác nhận: số hành khách vượt quá số chỗ của xe.']),
             'conflict' => back()->withErrors(['status' => 'Không thể xác nhận: xe đã có lịch trùng ngày.']),
             default => back()->withErrors(['status' => 'Không thể chuyển đơn sang trạng thái này.']),
