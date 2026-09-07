@@ -7,18 +7,26 @@ use App\Models\Booking;
 use App\Models\Rental;
 use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RentalController extends Controller
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
         return Inertia::render('rental/Index', [
             'vehicles' => Vehicle::query()
                 ->where('status', 'available')
                 ->orderBy('name')
                 ->get(['id', 'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status']),
+            'initial' => [
+                'pickup_location' => $request->string('pickup')->toString(),
+                'return_location' => $request->string('destination')->toString(),
+                'start_date' => $request->string('date')->toString(),
+                'end_date' => $request->string('end_date')->toString(),
+                'passengers' => max(1, (int) $request->input('passengers', 1)),
+            ],
         ]);
     }
 
