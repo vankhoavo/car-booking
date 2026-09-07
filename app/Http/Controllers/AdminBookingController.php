@@ -67,7 +67,7 @@ class AdminBookingController extends Controller
             }
 
             $bookingConflict = Booking::query()
-                ->whereKeyNot($lockedBooking->id)
+                ->where('id', '!=', $lockedBooking->id)
                 ->where('vehicle_id', $vehicle->id)
                 ->whereDate('travel_date', $lockedBooking->travel_date)
                 ->whereIn('status', ['pending', 'confirmed'])
