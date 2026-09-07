@@ -20,23 +20,12 @@ class LoginViewResponse implements LoginViewResponseContract
         ])->toResponse($request);
     }
 
+    /** @return array{code: string, teamName: string}|null */
     private function teamInvitation(Request $request): ?array
     {
         $invitationCode = $request->query('invitation');
-
-        if (! is_string($invitationCode)) {
-            return null;
-        }
-
-        $invitation = TeamInvitation::query()
-            ->with('team')
-            ->where('code', $invitationCode)
-            ->whereNull('accepted_at')
-            ->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>=', now()))
-            ->first();
-
-        return $invitation
-            ? ['code' => $invitation->code, 'teamName' => $invitation->team->name]
-            : null;
+        if (! is_string($invitationCode)) return null;
+        $invitation = TeamInvitation::query()->with('team')->where('code', $invitationCode)->whereNull('accepted_at')->where(fn ($query) => $query->whereNull('expires_at')->orWhere('expires_at', '>=', now()))->first();
+        return $invitation ? ['code' => $invitation->code, 'teamName' => $invitation->team->name] : null;
     }
 }
