@@ -9,6 +9,7 @@ use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -35,18 +36,17 @@ class BookingController extends Controller
         DB::transaction(function () use ($data): void {
             if (empty($data['vehicle_id'])) {
                 Booking::create($data + ['status' => 'pending']);
-
                 return;
             }
 
             $vehicle = Vehicle::query()->whereKey($data['vehicle_id'])->lockForUpdate()->first();
 
             if (! $vehicle || $vehicle->status !== 'available') {
-                abort(422, 'Xe hiện không khả dụng. Vui lòng chọn xe khác.');
+                throw ValidationException::withMessages(['vehicle_id' => 'Xe hiện không khả dụng. Vui lòng chọn xe khác.']);
             }
 
             if ($data['passengers'] > $vehicle->seats) {
-                abort(422, "Xe {$vehicle->name} chỉ có {$vehicle->seats} chỗ.");
+                throw ValidationException::withMessages(['passengers' => "Xe {$vehicle->name} chỉ có {$vehicle->seats} chỗ."]);
             }
 
             $bookingConflict = Booking::query()
@@ -63,7 +63,7 @@ class BookingController extends Controller
                 ->exists();
 
             if ($bookingConflict || $rentalConflict) {
-                abort(422, 'Xe đã có lịch trong ngày bạn chọn. Vui lòng chọn xe khác hoặc ngày khác.');
+                throw ValidationException::withMessages(['vehicle_id' => 'Xe đã có lịch trong ngày bạn chọn. Vui lòng chọn xe khác hoặc ngày khác.']);
             }
 
             Booking::create($data + ['status' => 'pending']);
