@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { ArrowRight, CalendarDays, CarFront, CheckCircle2, Clock3, Mail, MapPin, Phone, Users } from '@lucide/vue';
 
 interface Vehicle { id:number; name:string; brand:string; model:string; type:string|null; seats:number; description:string|null; image:string|null; price:string|number; status:string; }
@@ -12,6 +12,7 @@ const minDate = new Date().toLocaleDateString('en-CA');
 const selectedVehicle = computed<Vehicle | null>(() => props.vehicles.find((item) => item?.id === form.vehicle_id) ?? null);
 const passengerLimit = computed(() => selectedVehicle.value?.seats ?? 60);
 const success = computed(() => page.props.flash?.success as string | undefined);
+watch(passengerLimit, (limit) => { if (form.passengers > limit) form.passengers = limit; }, { immediate: true });
 const submit = () => form.post('/dat-xe', { preserveScroll:true, onSuccess:() => form.reset('customer_name','phone','email','pickup_location','destination','travel_date','notes') });
 </script>
 
