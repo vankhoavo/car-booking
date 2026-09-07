@@ -16,82 +16,32 @@ class AdminRentalController extends Controller
     public function index(Request $request): Response
     {
         $status = $request->string('status')->toString();
-        $rentals = Rental::query()
-            ->with('vehicle:id,name,brand,model,seats')
-            ->when($status !== '', fn ($query) => $query->where('status', $status))
-            ->latest()
-            ->get();
-
-        return Inertia::render('admin/Rentals', [
-            'rentals' => $rentals,
-            'filters' => ['status' => $status],
-        ]);
+        $rentals = Rental::query()->with('vehicle:id,name,brand,model,seats')->when($status !== '', fn ($query) => $query->where('status', $status))->latest()->get();
+        return Inertia::render('admin/Rentals', ['rentals' => $rentals, 'filters' => ['status' => $status]]);
     }
 
     public function update(Request $request, Rental $rental): RedirectResponse
     {
-        $data = $request->validate([
-            'status' => ['required', Rule::in(['pending', 'confirmed', 'cancelled', 'completed'])],
-        ]);
-
+        $data = $request->validate(['status' => ['required', Rule::in(['pending', 'confirmed', 'cancelled', 'completed'])]]);
         $result = DB::transaction(function () use ($rental, $data): string {
             $lockedRental = Rental::query()->whereKey($rental->id)->lockForUpdate()->firstOrFail();
             $next = $data['status'];
             $current = $lockedRental->status;
-            $allowed = match ($current) {
-                'pending' => ['confirmed', 'cancelled'],
-                'confirmed' => ['completed', 'cancelled'],
-                'cancelled', 'completed' => [],
-                default => [],
-            };
-
-            if ($current === $next) {
-                return 'unchanged';
-            }
-
-            if (! in_array($next, $allowed, true)) {
-                return 'invalid_transition';
-            }
-
-            if ($next !== 'confirmed') {
-                $lockedRental->update(['status' => $next]);
-
-                return 'updated';
-            }
+            $allowedTransitions = ['pending' => ['confirmed', 'cancelled'], 'confirmed' => ['completed', 'cancelled'], 'cancelled' => [], 'completed' => []];
+            $allowed = $allowedTransitions[$current] ?? [];
+            if ($current === $next) return 'unchanged';
+            if (! in_array($next, $allowed, true)) return 'invalid_transition';
+            if ($next !== 'confirmed') { $lockedRental->update(['status' => $next]); return 'updated'; }
 
             $vehicle = $lockedRental->vehicle()->lockForUpdate()->first();
-
-            if (! $vehicle || $vehicle->status !== 'available') {
-                return 'unavailable';
-            }
-
-            if ($lockedRental->passengers > $vehicle->seats) {
-                return 'capacity';
-            }
-
-            $rentalConflict = Rental::query()
-                ->where('id', '!=', $lockedRental->id)
-                ->where('vehicle_id', $vehicle->id)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->whereDate('start_date', '<=', $lockedRental->end_date)
-                ->whereDate('end_date', '>=', $lockedRental->start_date)
-                ->exists();
-
-            $bookingConflict = Booking::query()
-                ->where('vehicle_id', $vehicle->id)
-                ->whereIn('status', ['pending', 'confirmed'])
-                ->whereBetween('travel_date', [$lockedRental->start_date, $lockedRental->end_date])
-                ->exists();
-
-            if ($rentalConflict || $bookingConflict) {
-                return 'conflict';
-            }
-
+            if (! $vehicle || $vehicle->status !== 'available') return 'unavailable';
+            if ($lockedRental->passengers > $vehicle->seats) return 'capacity';
+            $rentalConflict = Rental::query()->where('id', '!=', $lockedRental->id)->where('vehicle_id', $vehicle->id)->whereIn('status', ['pending', 'confirmed'])->whereDate('start_date', '<=', $lockedRental->end_date)->whereDate('end_date', '>=', $lockedRental->start_date)->exists();
+            $bookingConflict = Booking::query()->where('vehicle_id', $vehicle->id)->whereIn('status', ['pending', 'confirmed'])->whereBetween('travel_date', [$lockedRental->start_date, $lockedRental->end_date])->exists();
+            if ($rentalConflict || $bookingConflict) return 'conflict';
             $lockedRental->update(['status' => 'confirmed']);
-
             return 'confirmed';
         });
-
         return match ($result) {
             'confirmed' => back()->with('success', 'Đã xác nhận đơn thuê xe.'),
             'updated', 'unchanged' => back()->with('success', 'Đã cập nhật trạng thái đơn thuê xe.'),
