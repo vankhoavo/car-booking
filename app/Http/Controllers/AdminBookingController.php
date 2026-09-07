@@ -28,6 +28,7 @@ class AdminBookingController extends Controller
             $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
             $next = $data['status'];
             $current = $lockedBooking->status;
+            /** @var array<string, array<int, string>> $allowedTransitions */
             $allowedTransitions = ['pending' => ['confirmed', 'cancelled'], 'confirmed' => ['completed', 'cancelled'], 'cancelled' => [], 'completed' => []];
             $allowed = $allowedTransitions[$current] ?? [];
             if ($current === $next) return 'unchanged';
@@ -41,7 +42,6 @@ class AdminBookingController extends Controller
                     $rentalConflict = Rental::query()->where('vehicle_id', $candidate->id)->whereIn('status', ['pending', 'confirmed'])->whereDate('start_date', '<=', $lockedBooking->travel_date)->whereDate('end_date', '>=', $lockedBooking->travel_date)->exists();
                     return ! $bookingConflict && ! $rentalConflict;
                 });
-                if ($vehicle) $lockedBooking->vehicle_id = $vehicle->id;
             }
             if (! $vehicle || $vehicle->status !== 'available') return 'unavailable';
             if ($lockedBooking->passengers > $vehicle->seats) return 'capacity';
