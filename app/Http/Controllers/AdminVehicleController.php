@@ -7,6 +7,7 @@ use App\Models\Rental;
 use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,31 +22,68 @@ class AdminVehicleController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validated($request);
-        Vehicle::create($data);
+        Vehicle::create($this->validated($request));
 
         return back()->with('success', 'Đã thêm xe mới.');
     }
 
     public function update(Request $request, Vehicle $vehicle): RedirectResponse
     {
-        $vehicle->update($this->validated($request));
+        $data = $this->validated($request);
+
+        $result = DB::transaction(function () use ($vehicle, $data): string {
+            $lockedVehicle = Vehicle::query()->whereKey($vehicle->id)->lockForUpdate()->firstOrFail();
+            $activePassengers = max(
+                (int) Booking::query()
+                    ->where('vehicle_id', $lockedVehicle->id)
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->max('passengers'),
+                (int) Rental::query()
+                    ->where('vehicle_id', $lockedVehicle->id)
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->max('passengers'),
+            );
+
+            if ((int) $data['seats'] < $activePassengers) {
+                return 'capacity';
+            }
+
+            $lockedVehicle->update($data);
+
+            return 'updated';
+        });
+
+        if ($result === 'capacity') {
+            return back()->withErrors([
+                'seats' => 'Số chỗ mới không thể nhỏ hơn số hành khách của đơn đang chờ hoặc đã xác nhận.',
+            ])->withInput();
+        }
 
         return back()->with('success', 'Đã cập nhật thông tin xe.');
     }
 
     public function destroy(Vehicle $vehicle): RedirectResponse
     {
-        $hasOrders = Booking::query()->where('vehicle_id', $vehicle->id)->exists()
-            || Rental::query()->where('vehicle_id', $vehicle->id)->exists();
+        $deleted = DB::transaction(function () use ($vehicle): bool {
+            $lockedVehicle = Vehicle::query()->whereKey($vehicle->id)->lockForUpdate()->firstOrFail();
 
-        if ($hasOrders) {
+            $hasOrders = Booking::query()->where('vehicle_id', $lockedVehicle->id)->exists()
+                || Rental::query()->where('vehicle_id', $lockedVehicle->id)->exists();
+
+            if ($hasOrders) {
+                return false;
+            }
+
+            $lockedVehicle->delete();
+
+            return true;
+        });
+
+        if (! $deleted) {
             return back()->withErrors([
                 'vehicle' => 'Không thể xóa xe đã có đơn đặt hoặc đơn thuê. Hãy chuyển xe sang trạng thái "Ngừng sử dụng" thay vì xóa.',
             ]);
         }
-
-        $vehicle->delete();
 
         return back()->with('success', 'Đã xóa xe.');
     }
