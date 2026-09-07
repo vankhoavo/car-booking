@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -49,11 +50,11 @@ class RentalController extends Controller
             $vehicle = Vehicle::query()->whereKey($data['vehicle_id'])->lockForUpdate()->first();
 
             if (! $vehicle || $vehicle->status !== 'available') {
-                abort(422, 'Xe hiện không khả dụng. Vui lòng chọn xe khác.');
+                throw ValidationException::withMessages(['vehicle_id' => 'Xe hiện không khả dụng. Vui lòng chọn xe khác.']);
             }
 
             if ($data['passengers'] > $vehicle->seats) {
-                abort(422, "Xe {$vehicle->name} chỉ có {$vehicle->seats} chỗ.");
+                throw ValidationException::withMessages(['passengers' => "Xe {$vehicle->name} chỉ có {$vehicle->seats} chỗ."]);
             }
 
             $overlap = Rental::query()
@@ -70,7 +71,7 @@ class RentalController extends Controller
                 ->exists();
 
             if ($overlap || $bookingConflict) {
-                abort(422, 'Xe đã có lịch trong khoảng thời gian bạn chọn. Vui lòng chọn xe khác hoặc ngày khác.');
+                throw ValidationException::withMessages(['vehicle_id' => 'Xe đã có lịch trong khoảng thời gian bạn chọn. Vui lòng chọn xe khác hoặc ngày khác.']);
             }
 
             Rental::create($data + ['status' => 'pending']);
