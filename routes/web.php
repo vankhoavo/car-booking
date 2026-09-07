@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RentalController;
 use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +25,12 @@ Route::prefix('api')->group(function () {
     Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show']);
     Route::get('/vehicles/{vehicle}/availability', [VehicleController::class, 'availability']);
 });
+
+Route::prefix('admin')
+    ->middleware(['auth', 'verified', EnsureAdmin::class])
+    ->group(function () {
+        Route::get('/', AdminController::class)->name('admin.dashboard');
+    });
 
 Route::prefix('{current_team}')
     ->middleware(['auth', 'verified', EnsureTeamMembership::class])
