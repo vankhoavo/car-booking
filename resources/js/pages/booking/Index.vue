@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { ArrowRight, CalendarDays, CarFront, CheckCircle2, Clock3, Mail, MapPin, Phone, Users } from '@lucide/vue';
 
 interface Vehicle {
@@ -29,7 +29,14 @@ const selectedVehicle = computed<Vehicle | null>(() => {
     const vehicle = props.vehicles.find((item) => item?.id === form.vehicle_id);
     return vehicle ?? null;
 });
+const passengerLimit = computed(() => selectedVehicle.value?.seats ?? 60);
 const success = computed(() => page.props.flash?.success as string | undefined);
+
+watch(passengerLimit, (limit) => {
+    if (form.passengers > limit) {
+        form.passengers = limit;
+    }
+});
 
 const submit = () => form.post('/dat-xe', {
     preserveScroll: true,
@@ -65,7 +72,7 @@ const submit = () => form.post('/dat-xe', {
                         <label class="sm:col-span-2"><span class="mb-1.5 block text-sm font-semibold">Điểm đến <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><ArrowRight class="size-5 text-indigo-600" /><input v-model="form.destination" class="w-full border-0 p-0 outline-none focus:ring-0" placeholder="Nhập địa chỉ hoặc địa điểm đến" /></div><p v-if="form.errors.destination" class="mt-1 text-xs text-rose-600">{{ form.errors.destination }}</p></label>
                         <label><span class="mb-1.5 block text-sm font-semibold">Ngày đi <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><CalendarDays class="size-5 text-indigo-600" /><input v-model="form.travel_date" :min="minDate" type="date" class="w-full border-0 p-0 outline-none focus:ring-0" /></div><p v-if="form.errors.travel_date" class="mt-1 text-xs text-rose-600">{{ form.errors.travel_date }}</p></label>
                         <label><span class="mb-1.5 block text-sm font-semibold">Giờ đón <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><Clock3 class="size-5 text-indigo-600" /><input v-model="form.pickup_time" type="time" class="w-full border-0 p-0 outline-none focus:ring-0" /></div><p v-if="form.errors.pickup_time" class="mt-1 text-xs text-rose-600">{{ form.errors.pickup_time }}</p></label>
-                        <label><span class="mb-1.5 block text-sm font-semibold">Hành khách <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><Users class="size-5 text-indigo-600" /><select v-model="form.passengers" class="w-full border-0 bg-transparent p-0 outline-none focus:ring-0"><option v-for="n in 12" :key="n" :value="n">{{ n }} người</option></select></div><p v-if="form.errors.passengers" class="mt-1 text-xs text-rose-600">{{ form.errors.passengers }}</p></label>
+                        <label><span class="mb-1.5 block text-sm font-semibold">Hành khách <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><Users class="size-5 text-indigo-600" /><select v-model="form.passengers" class="w-full border-0 bg-transparent p-0 outline-none focus:ring-0"><option v-for="n in passengerLimit" :key="n" :value="n">{{ n }} người</option></select></div><p v-if="form.errors.passengers" class="mt-1 text-xs text-rose-600">{{ form.errors.passengers }}</p></label>
                         <label><span class="mb-1.5 block text-sm font-semibold">Loại xe</span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><CarFront class="size-5 text-indigo-600" /><select v-model="form.vehicle_id" class="w-full border-0 bg-transparent p-0 outline-none focus:ring-0"><option :value="null">Để chúng tôi tư vấn</option><option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.name }} · {{ vehicle.seats }} chỗ</option></select></div></label>
                         <label class="sm:col-span-2"><span class="mb-1.5 block text-sm font-semibold">Ghi chú thêm</span><textarea v-model="form.notes" rows="4" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Ví dụ: có trẻ nhỏ, nhiều hành lý, điểm đón cụ thể..." /></label>
                     </div>
