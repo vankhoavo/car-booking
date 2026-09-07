@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Vehicle;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreBookingRequest extends FormRequest
 {
@@ -29,8 +31,20 @@ class StoreBookingRequest extends FormRequest
             'travel_date' => ['required', 'date', 'after_or_equal:today'],
             'pickup_time' => ['required', 'date_format:H:i'],
             'passengers' => ['required', 'integer', 'min:1', 'max:60'],
-            'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
+            'vehicle_id' => [
+                'nullable',
+                'integer',
+                Rule::exists(Vehicle::class, 'id')->where(fn ($query) => $query->where('status', 'available')),
+            ],
             'notes' => ['nullable', 'string', 'max:2000'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'vehicle_id.exists' => 'Xe đã chọn hiện không khả dụng. Vui lòng chọn xe khác.',
+            'passengers.max' => 'Số hành khách vượt quá giới hạn cho phép.',
         ];
     }
 }
