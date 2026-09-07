@@ -85,4 +85,53 @@ class PublicBookingRentalTest extends TestCase
         $response->assertSessionHasErrors('vehicle_id');
         $this->assertDatabaseMissing('rentals', ['email' => 'new@example.com']);
     }
+
+    public function test_vehicle_availability_api_rejects_a_conflicting_booking(): void
+    {
+        $vehicle = Vehicle::create([
+            'name' => 'Toyota Corolla Cross',
+            'brand' => 'Toyota',
+            'model' => 'Corolla Cross',
+            'type' => 'SUV',
+            'seats' => 5,
+            'price' => 950000,
+            'status' => 'available',
+        ]);
+        $date = now()->addDays(3)->toDateString();
+
+        Booking::create([
+            'vehicle_id' => $vehicle->id,
+            'customer_name' => 'Existing Customer',
+            'phone' => '0901234567',
+            'email' => 'existing@example.com',
+            'pickup_location' => 'Da Nang',
+            'destination' => 'Hoi An',
+            'travel_date' => $date,
+            'pickup_time' => '09:00',
+            'passengers' => 2,
+            'status' => 'confirmed',
+        ]);
+
+        $response = $this->getJson("/api/vehicles/{$vehicle->id}/availability?start_date={$date}&end_date={$date}");
+
+        $response->assertOk()->assertJson(['available' => false]);
+    }
+
+    public function test_vehicle_availability_api_accepts_a_free_period(): void
+    {
+        $vehicle = Vehicle::create([
+            'name' => 'Kia Carnival',
+            'brand' => 'Kia',
+            'model' => 'Carnival',
+            'type' => 'MPV',
+            'seats' => 7,
+            'price' => 1200000,
+            'status' => 'available',
+        ]);
+        $date = now()->addDays(3)->toDateString();
+
+        $response = $this->getJson("/api/vehicles/{$vehicle->id}/availability?start_date={$date}&end_date={$date}");
+
+        $response->assertOk()->assertJson(['available' => true]);
+    }
 }
