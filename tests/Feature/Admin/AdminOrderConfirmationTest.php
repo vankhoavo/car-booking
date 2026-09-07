@@ -66,4 +66,50 @@ class AdminOrderConfirmationTest extends TestCase
 
         $this->assertDatabaseHas('rentals', ['id' => $rental->id, 'status' => 'pending']);
     }
+
+    public function test_admin_cannot_skip_booking_states(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'email_verified_at' => now()]);
+        $vehicle = Vehicle::create([
+            'name' => 'Toyota Camry', 'brand' => 'Toyota', 'model' => 'Camry',
+            'type' => 'Sedan', 'seats' => 5, 'price' => 1100000, 'status' => 'available',
+        ]);
+        $booking = Booking::create([
+            'vehicle_id' => $vehicle->id, 'customer_name' => 'Customer', 'phone' => '0901234567',
+            'email' => 'customer@example.com', 'pickup_location' => 'Da Nang', 'destination' => 'Hue',
+            'travel_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '09:00',
+            'passengers' => 2, 'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin)
+            ->put("/admin/bookings/{$booking->id}", ['status' => 'completed'])
+            ->assertSessionHasErrors('status');
+
+        $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'pending']);
+    }
+
+    public function test_admin_cannot_reduce_vehicle_capacity_below_active_orders(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'email_verified_at' => now()]);
+        $vehicle = Vehicle::create([
+            'name' => 'Ford Everest', 'brand' => 'Ford', 'model' => 'Everest',
+            'type' => 'SUV', 'seats' => 7, 'price' => 1300000, 'status' => 'available',
+        ]);
+        Booking::create([
+            'vehicle_id' => $vehicle->id, 'customer_name' => 'Customer', 'phone' => '0901234567',
+            'email' => 'customer@example.com', 'pickup_location' => 'Da Nang', 'destination' => 'Hoi An',
+            'travel_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '09:00',
+            'passengers' => 6, 'status' => 'confirmed',
+        ]);
+
+        $this->actingAs($admin)
+            ->put("/admin/vehicles/{$vehicle->id}", [
+                'name' => $vehicle->name, 'brand' => $vehicle->brand, 'model' => $vehicle->model,
+                'type' => $vehicle->type, 'seats' => 5, 'description' => $vehicle->description,
+                'image' => $vehicle->image, 'price' => $vehicle->price, 'status' => $vehicle->status,
+            ])
+            ->assertSessionHasErrors('seats');
+
+        $this->assertDatabaseHas('vehicles', ['id' => $vehicle->id, 'seats' => 7]);
+    }
 }
