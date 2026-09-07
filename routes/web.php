@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminVehicleController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
@@ -30,6 +31,10 @@ Route::prefix('admin')
     ->middleware(['auth', 'verified', EnsureAdmin::class])
     ->group(function () {
         Route::get('/', AdminController::class)->name('admin.dashboard');
+        Route::get('/vehicles', [AdminVehicleController::class, 'index'])->name('admin.vehicles.index');
+        Route::post('/vehicles', [AdminVehicleController::class, 'store'])->name('admin.vehicles.store');
+        Route::put('/vehicles/{vehicle}', [AdminVehicleController::class, 'update'])->name('admin.vehicles.update');
+        Route::delete('/vehicles/{vehicle}', [AdminVehicleController::class, 'destroy'])->name('admin.vehicles.destroy');
     });
 
 Route::prefix('{current_team}')
