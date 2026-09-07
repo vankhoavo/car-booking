@@ -52,5 +52,8 @@ jobs:
       - name: Format frontend
         run: npm run check:fix
 
+      - name: Format PHP
+        run: composer lint
+
       - name: Run PHP checks and tests
         run: composer test
