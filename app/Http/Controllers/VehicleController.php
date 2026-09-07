@@ -12,21 +12,13 @@ class VehicleController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(
-            Vehicle::query()
-                ->where('status', 'available')
-                ->orderBy('name')
-                ->get(['id', 'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price']),
-        );
+        return response()->json(Vehicle::query()->where('status', 'available')->orderBy('name')->get(['id', 'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price']));
     }
 
     public function show(Vehicle $vehicle): JsonResponse
     {
         abort_unless($vehicle->status === 'available', 404);
-
-        return response()->json($vehicle->only([
-            'id', 'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status',
-        ]));
+        return response()->json($vehicle->only(['id', 'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status']));
     }
 
     public function availability(Request $request, Vehicle $vehicle): JsonResponse
@@ -36,21 +28,9 @@ class VehicleController extends Controller
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ]);
 
-        $rentalOverlap = Rental::query()
-            ->where('vehicle_id', $vehicle->id)
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->whereDate('start_date', '<=', $data['end_date'])
-            ->whereDate('end_date', '>=', $data['start_date'])
-            ->exists();
+        $rentalOverlap = Rental::query()->where('vehicle_id', $vehicle->id)->whereIn('status', ['pending', 'confirmed'])->whereDate('start_date', '<=', $data['end_date'])->whereDate('end_date', '>=', $data['start_date'])->exists();
+        $bookingOverlap = Booking::query()->where('vehicle_id', $vehicle->id)->whereIn('status', ['pending', 'confirmed'])->whereDate('travel_date', '>=', $data['start_date'])->whereDate('travel_date', '<=', $data['end_date'])->exists();
 
-        $bookingOverlap = Booking::query()
-            ->where('vehicle_id', $vehicle->id)
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->whereBetween('travel_date', [$data['start_date'], $data['end_date']])
-            ->exists();
-
-        return response()->json([
-            'available' => $vehicle->status === 'available' && ! $rentalOverlap && ! $bookingOverlap,
-        ]);
+        return response()->json(['available' => $vehicle->status === 'available' && ! $rentalOverlap && ! $bookingOverlap]);
     }
 }
