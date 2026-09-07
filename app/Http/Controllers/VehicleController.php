@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
 use App\Models\Rental;
 use App\Models\Vehicle;
 use Illuminate\Http\JsonResponse;
@@ -35,15 +36,21 @@ class VehicleController extends Controller
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
         ]);
 
-        $overlap = Rental::query()
+        $rentalOverlap = Rental::query()
             ->where('vehicle_id', $vehicle->id)
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereDate('start_date', '<=', $data['end_date'])
             ->whereDate('end_date', '>=', $data['start_date'])
             ->exists();
 
+        $bookingOverlap = Booking::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereBetween('travel_date', [$data['start_date'], $data['end_date']])
+            ->exists();
+
         return response()->json([
-            'available' => $vehicle->status === 'available' && ! $overlap,
+            'available' => $vehicle->status === 'available' && ! $rentalOverlap && ! $bookingOverlap,
         ]);
     }
 }
