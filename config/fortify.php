@@ -15,7 +15,6 @@ return [
     'limiters' => [
         'login' => 'login',
         'two-factor' => 'two-factor',
-        'passkeys' => 'passkeys',
     ],
     'views' => true,
     'features' => [
@@ -23,9 +22,6 @@ return [
         Features::emailVerification(),
         Features::twoFactorAuthentication([
             'confirm' => true,
-            'confirmPassword' => true,
-        ]),
-        Features::passkeys([
             'confirmPassword' => true,
         ]),
     ],
