@@ -12,13 +12,12 @@ class Booking extends Model
         'travel_date', 'pickup_time', 'passengers', 'notes', 'status',
     ];
 
-    protected $casts = [
-        'travel_date' => 'date',
-    ];
+    protected $casts = ['travel_date' => 'date'];
 
-    /** @return BelongsTo<Vehicle, Booking> */
     public function vehicle(): BelongsTo
     {
-        return $this->belongsTo(Vehicle::class);
+        /** @var BelongsTo<Vehicle, Booking> $relation */
+        $relation = $this->belongsTo(Vehicle::class);
+        return $relation;
     }
 }
