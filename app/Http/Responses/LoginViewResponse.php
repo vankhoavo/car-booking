@@ -4,11 +4,10 @@ namespace App\Http\Responses;
 
 use App\Models\TeamInvitation;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Laravel\Fortify\Contracts\LoginViewResponse as LoginViewResponseContract;
 use Laravel\Fortify\Features;
+use Symfony\Component\HttpFoundation\Response;
 
 class LoginViewResponse implements LoginViewResponseContract
 {
