@@ -10,17 +10,15 @@ class Vehicle extends Model
     protected $fillable = ['name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status'];
     protected $casts = ['price' => 'decimal:2'];
 
-    public function bookings(): HasMany
+    /** @return HasMany<Booking, Vehicle> */
+    public function bookings()
     {
-        /** @var HasMany<Booking, Vehicle> $relation */
-        $relation = $this->hasMany(Booking::class);
-        return $relation;
+        return $this->hasMany(Booking::class);
     }
 
-    public function rentals(): HasMany
+    /** @return HasMany<Rental, Vehicle> */
+    public function rentals()
     {
-        /** @var HasMany<Rental, Vehicle> $relation */
-        $relation = $this->hasMany(Rental::class);
-        return $relation;
+        return $this->hasMany(Rental::class);
     }
 }
