@@ -22,6 +22,11 @@ class DatabaseSeeder extends Seeder
         $adminEmail = config('services.admin.email');
         $adminPassword = config('services.admin.password');
 
+        if (app()->environment('local', 'testing')) {
+            $adminEmail ??= 'admin@carbooking.test';
+            $adminPassword ??= 'password';
+        }
+
         if (filled($adminEmail) && filled($adminPassword)) {
             User::updateOrCreate(
                 ['email' => $adminEmail],
