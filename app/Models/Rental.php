@@ -14,7 +14,7 @@ class Rental extends Model
 
     protected $casts = ['start_date' => 'date', 'end_date' => 'date'];
 
-    /** @return BelongsTo<Vehicle, Rental> */
+    /** @return BelongsTo<Vehicle, $this> */
     public function vehicle()
     {
         return $this->belongsTo(Vehicle::class);
