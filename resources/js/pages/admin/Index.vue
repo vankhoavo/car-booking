@@ -1,0 +1,151 @@
+<script setup lang="ts">
+import { Head } from '@inertiajs/vue3';
+import { Car, FileText, CalendarCheck, KeyRound, CircleCheck } from 'lucide-vue-next';
+
+type Stats = {
+    vehicles: number;
+    availableVehicles: number;
+    pendingBookings: number;
+    pendingRentals: number;
+    blogPosts: number;
+};
+
+type Vehicle = { id: number; name: string } | null;
+type Booking = {
+    id: number;
+    customer_name: string;
+    phone: string;
+    destination: string;
+    travel_date: string;
+    passengers: number;
+    status: string;
+    vehicle: Vehicle;
+};
+type Rental = {
+    id: number;
+    customer_name: string;
+    phone: string;
+    start_date: string;
+    end_date: string;
+    passengers: number;
+    status: string;
+    vehicle: Vehicle;
+};
+
+defineProps<{
+    stats: Stats;
+    recentBookings: Booking[];
+    recentRentals: Rental[];
+}>();
+
+defineOptions({
+    layout: {
+        breadcrumbs: [{ title: 'Quản trị', href: '/admin' }],
+    },
+});
+
+const statusLabel = (status: string) => ({
+    pending: 'Chờ xác nhận',
+    confirmed: 'Đã xác nhận',
+    cancelled: 'Đã hủy',
+    completed: 'Hoàn thành',
+}[status] ?? status);
+
+const statusClass = (status: string) => ({
+    pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+    confirmed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+}[status] ?? 'bg-muted text-muted-foreground');
+</script>
+
+<template>
+    <Head title="Quản trị" />
+
+    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
+        <div>
+            <h1 class="text-2xl font-semibold tracking-tight">Trang quản trị</h1>
+            <p class="text-muted-foreground mt-1 text-sm">Theo dõi xe, đặt xe, thuê xe và nội dung website.</p>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div v-for="item in [
+                { label: 'Tổng số xe', value: stats.vehicles, icon: Car },
+                { label: 'Xe đang sẵn sàng', value: stats.availableVehicles, icon: CircleCheck },
+                { label: 'Đặt xe chờ xử lý', value: stats.pendingBookings, icon: CalendarCheck },
+                { label: 'Thuê xe chờ xử lý', value: stats.pendingRentals, icon: KeyRound },
+                { label: 'Bài viết', value: stats.blogPosts, icon: FileText },
+            ]" :key="item.label" class="rounded-xl border bg-card p-5 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-muted-foreground">{{ item.label }}</span>
+                    <component :is="item.icon" class="size-5 text-muted-foreground" />
+                </div>
+                <div class="mt-3 text-3xl font-bold">{{ item.value }}</div>
+            </div>
+        </div>
+
+        <div class="grid gap-6 xl:grid-cols-2">
+            <section class="rounded-xl border bg-card shadow-sm">
+                <div class="border-b p-5">
+                    <h2 class="font-semibold">Đơn đặt xe gần đây</h2>
+                    <p class="text-muted-foreground mt-1 text-sm">Các yêu cầu mới nhất từ khách hàng.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-muted/40 text-muted-foreground">
+                            <tr>
+                                <th class="px-5 py-3 font-medium">Khách hàng</th>
+                                <th class="px-5 py-3 font-medium">Xe</th>
+                                <th class="px-5 py-3 font-medium">Ngày đi</th>
+                                <th class="px-5 py-3 font-medium">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="booking in recentBookings" :key="booking.id" class="border-t">
+                                <td class="px-5 py-4">
+                                    <div class="font-medium">{{ booking.customer_name }}</div>
+                                    <div class="text-muted-foreground">{{ booking.phone }}</div>
+                                </td>
+                                <td class="px-5 py-4">{{ booking.vehicle?.name ?? 'Chưa chọn xe' }}</td>
+                                <td class="px-5 py-4 whitespace-nowrap">{{ booking.travel_date }}</td>
+                                <td class="px-5 py-4 whitespace-nowrap"><span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="statusClass(booking.status)">{{ statusLabel(booking.status) }}</span></td>
+                            </tr>
+                            <tr v-if="recentBookings.length === 0"><td colspan="4" class="px-5 py-8 text-center text-muted-foreground">Chưa có đơn đặt xe.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="rounded-xl border bg-card shadow-sm">
+                <div class="border-b p-5">
+                    <h2 class="font-semibold">Yêu cầu thuê xe gần đây</h2>
+                    <p class="text-muted-foreground mt-1 text-sm">Các yêu cầu thuê xe mới nhất.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-muted/40 text-muted-foreground">
+                            <tr>
+                                <th class="px-5 py-3 font-medium">Khách hàng</th>
+                                <th class="px-5 py-3 font-medium">Xe</th>
+                                <th class="px-5 py-3 font-medium">Thời gian</th>
+                                <th class="px-5 py-3 font-medium">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="rental in recentRentals" :key="rental.id" class="border-t">
+                                <td class="px-5 py-4">
+                                    <div class="font-medium">{{ rental.customer_name }}</div>
+                                    <div class="text-muted-foreground">{{ rental.phone }}</div>
+                                </td>
+                                <td class="px-5 py-4">{{ rental.vehicle?.name ?? 'Chưa chọn xe' }}</td>
+                                <td class="px-5 py-4 whitespace-nowrap">{{ rental.start_date }} → {{ rental.end_date }}</td>
+                                <td class="px-5 py-4 whitespace-nowrap"><span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="statusClass(rental.status)">{{ statusLabel(rental.status) }}</span></td>
+                            </tr>
+                            <tr v-if="recentRentals.length === 0"><td colspan="4" class="px-5 py-8 text-center text-muted-foreground">Chưa có yêu cầu thuê xe.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+</template>
