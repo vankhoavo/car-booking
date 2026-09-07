@@ -8,8 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Booking extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'vehicle_id', 'customer_name', 'phone', 'email', 'pickup_location', 'destination',
         'travel_date', 'pickup_time', 'passengers', 'notes', 'status',
@@ -19,6 +17,7 @@ class Booking extends Model
         'travel_date' => 'date',
     ];
 
+    /** @return BelongsTo<Vehicle, Booking> */
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
