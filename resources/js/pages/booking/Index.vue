@@ -13,6 +13,7 @@ interface Vehicle {
     description: string | null;
     image: string | null;
     price: string | number;
+    status: string;
 }
 
 const props = defineProps<{ vehicles: Vehicle[] }>();
@@ -27,7 +28,10 @@ const minDate = new Date().toISOString().slice(0, 10);
 const selectedVehicle = computed(() => props.vehicles.find((vehicle) => vehicle.id === form.vehicle_id));
 const success = computed(() => page.props.flash?.success as string | undefined);
 
-const submit = () => form.post('/dat-xe', { preserveScroll: true, onSuccess: () => form.reset('customer_name', 'phone', 'email', 'pickup_location', 'destination', 'travel_date', 'notes') });
+const submit = () => form.post('/dat-xe', {
+    preserveScroll: true,
+    onSuccess: () => form.reset('customer_name', 'phone', 'email', 'pickup_location', 'destination', 'travel_date', 'notes'),
+});
 </script>
 
 <template>
@@ -45,6 +49,7 @@ const submit = () => form.post('/dat-xe', { preserveScroll: true, onSuccess: () 
             <div class="mb-8"><p class="text-sm font-bold uppercase tracking-widest text-indigo-600">Đặt xe</p><h1 class="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Đặt chuyến xe theo nhu cầu</h1><p class="mt-2 max-w-2xl text-slate-500">Không cần tài khoản. Điền thông tin, chúng tôi tiếp nhận yêu cầu và liên hệ xác nhận.</p></div>
 
             <div v-if="success" class="mb-6 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800"><CheckCircle2 class="mt-0.5 size-5 shrink-0" /><div><p class="font-bold">Đặt xe thành công</p><p class="mt-1 text-sm">{{ success }}</p></div></div>
+            <div v-if="form.errors.vehicle_id" class="mb-6 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-700">{{ form.errors.vehicle_id }}</div>
 
             <form @submit.prevent="submit" class="grid gap-6 lg:grid-cols-[1.15fr_.85fr]">
                 <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -57,7 +62,7 @@ const submit = () => form.post('/dat-xe', { preserveScroll: true, onSuccess: () 
                         <label class="sm:col-span-2"><span class="mb-1.5 block text-sm font-semibold">Điểm đến <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><ArrowRight class="size-5 text-indigo-600" /><input v-model="form.destination" class="w-full border-0 p-0 outline-none focus:ring-0" placeholder="Nhập địa chỉ hoặc địa điểm đến" /></div><p v-if="form.errors.destination" class="mt-1 text-xs text-rose-600">{{ form.errors.destination }}</p></label>
                         <label><span class="mb-1.5 block text-sm font-semibold">Ngày đi <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><CalendarDays class="size-5 text-indigo-600" /><input v-model="form.travel_date" :min="minDate" type="date" class="w-full border-0 p-0 outline-none focus:ring-0" /></div><p v-if="form.errors.travel_date" class="mt-1 text-xs text-rose-600">{{ form.errors.travel_date }}</p></label>
                         <label><span class="mb-1.5 block text-sm font-semibold">Giờ đón <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><Clock3 class="size-5 text-indigo-600" /><input v-model="form.pickup_time" type="time" class="w-full border-0 p-0 outline-none focus:ring-0" /></div><p v-if="form.errors.pickup_time" class="mt-1 text-xs text-rose-600">{{ form.errors.pickup_time }}</p></label>
-                        <label><span class="mb-1.5 block text-sm font-semibold">Hành khách <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><Users class="size-5 text-indigo-600" /><select v-model="form.passengers" class="w-full border-0 bg-transparent p-0 outline-none focus:ring-0"><option v-for="n in 12" :key="n" :value="n">{{ n }} người</option></select></div></label>
+                        <label><span class="mb-1.5 block text-sm font-semibold">Hành khách <b class="text-rose-500">*</b></span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><Users class="size-5 text-indigo-600" /><select v-model="form.passengers" class="w-full border-0 bg-transparent p-0 outline-none focus:ring-0"><option v-for="n in 12" :key="n" :value="n">{{ n }} người</option></select></div><p v-if="form.errors.passengers" class="mt-1 text-xs text-rose-600">{{ form.errors.passengers }}</p></label>
                         <label><span class="mb-1.5 block text-sm font-semibold">Loại xe</span><div class="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3"><CarFront class="size-5 text-indigo-600" /><select v-model="form.vehicle_id" class="w-full border-0 bg-transparent p-0 outline-none focus:ring-0"><option :value="null">Để chúng tôi tư vấn</option><option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.name }} · {{ vehicle.seats }} chỗ</option></select></div></label>
                         <label class="sm:col-span-2"><span class="mb-1.5 block text-sm font-semibold">Ghi chú thêm</span><textarea v-model="form.notes" rows="4" class="w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" placeholder="Ví dụ: có trẻ nhỏ, nhiều hành lý, điểm đón cụ thể..." /></label>
                     </div>
