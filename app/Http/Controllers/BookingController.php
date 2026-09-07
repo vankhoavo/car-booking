@@ -7,18 +7,26 @@ use App\Models\Booking;
 use App\Models\Rental;
 use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class BookingController extends Controller
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
         return Inertia::render('booking/Index', [
             'vehicles' => Vehicle::query()
                 ->where('status', 'available')
                 ->orderBy('name')
                 ->get(['id', 'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status']),
+            'initial' => [
+                'pickup_location' => $request->string('pickup')->toString(),
+                'destination' => $request->string('destination')->toString(),
+                'travel_date' => $request->string('date')->toString(),
+                'pickup_time' => $request->string('time')->toString() ?: '09:00',
+                'passengers' => max(1, (int) $request->input('passengers', 1)),
+            ],
         ]);
     }
 
