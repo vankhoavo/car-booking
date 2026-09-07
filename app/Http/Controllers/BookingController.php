@@ -17,10 +17,7 @@ class BookingController extends Controller
     public function create(Request $request): Response
     {
         return Inertia::render('booking/Index', [
-            'vehicles' => Vehicle::query()
-                ->where('status', 'available')
-                ->orderBy('name')
-                ->get(['id', 'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status']),
+            'vehicles' => Vehicle::query()->where('status', 'available')->orderBy('name')->get(['id', 'name', 'brand', 'model', 'type', 'seats', 'description', 'image', 'price', 'status']),
             'initial' => [
                 'pickup_location' => $request->string('pickup')->toString(),
                 'destination' => $request->string('destination')->toString(),
@@ -35,24 +32,21 @@ class BookingController extends Controller
     {
         $data = $request->validated();
 
-        if (empty($data['vehicle_id'])) {
-            Booking::create($data + ['status' => 'pending']);
+        DB::transaction(function () use ($data): void {
+            if (empty($data['vehicle_id'])) {
+                Booking::create($data + ['status' => 'pending']);
 
-            return back()->with('success', 'Đặt xe thành công. Chúng tôi sẽ liên hệ để xác nhận chuyến đi.');
-        }
+                return;
+            }
 
-        $conflict = DB::transaction(function () use ($data): bool {
-            $vehicle = Vehicle::query()
-                ->whereKey($data['vehicle_id'])
-                ->lockForUpdate()
-                ->first();
+            $vehicle = Vehicle::query()->whereKey($data['vehicle_id'])->lockForUpdate()->first();
 
             if (! $vehicle || $vehicle->status !== 'available') {
-                return true;
+                abort(422, 'Xe hiện không khả dụng. Vui lòng chọn xe khác.');
             }
 
             if ($data['passengers'] > $vehicle->seats) {
-                return true;
+                abort(422, "Xe {$vehicle->name} chỉ có {$vehicle->seats} chỗ.");
             }
 
             $bookingConflict = Booking::query()
@@ -69,27 +63,11 @@ class BookingController extends Controller
                 ->exists();
 
             if ($bookingConflict || $rentalConflict) {
-                return true;
+                abort(422, 'Xe đã có lịch trong ngày bạn chọn. Vui lòng chọn xe khác hoặc ngày khác.');
             }
 
             Booking::create($data + ['status' => 'pending']);
-
-            return false;
         });
-
-        if ($conflict) {
-            $vehicle = Vehicle::query()->find($data['vehicle_id']);
-
-            if (! $vehicle || $vehicle->status !== 'available') {
-                return back()->withErrors(['vehicle_id' => 'Xe hiện không khả dụng. Vui lòng chọn xe khác.'])->withInput();
-            }
-
-            if ($data['passengers'] > $vehicle->seats) {
-                return back()->withErrors(['passengers' => "Xe {$vehicle->name} chỉ có {$vehicle->seats} chỗ."])->withInput();
-            }
-
-            return back()->withErrors(['vehicle_id' => 'Xe đã có lịch trong ngày bạn chọn. Vui lòng chọn xe khác hoặc ngày khác.'])->withInput();
-        }
 
         return back()->with('success', 'Đặt xe thành công. Chúng tôi sẽ liên hệ để xác nhận chuyến đi.');
     }
