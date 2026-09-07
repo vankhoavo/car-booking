@@ -27,6 +27,7 @@ class AdminRentalController extends Controller
             $lockedRental = Rental::query()->whereKey($rental->id)->lockForUpdate()->firstOrFail();
             $next = $data['status'];
             $current = $lockedRental->status;
+            /** @var array<string, array<int, string>> $allowedTransitions */
             $allowedTransitions = ['pending' => ['confirmed', 'cancelled'], 'confirmed' => ['completed', 'cancelled'], 'cancelled' => [], 'completed' => []];
             $allowed = $allowedTransitions[$current] ?? [];
             if ($current === $next) return 'unchanged';
