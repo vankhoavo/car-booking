@@ -34,7 +34,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | When your application is in debug mode, detailed error messages with
-    | stack traces will be shown on every error that occurs within your
+    | stack traces will be shown on every error that occurs within the
     | application. If disabled, a simple generic error page is shown.
     |
     */
@@ -47,8 +47,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | This URL is used by the console to properly generate URLs when using
-    | the Artisan command line tool. You should set this to the root of
-    | the application so that it's available within Artisan commands.
+    | the Artisan command line tool. You should set this in your ".env" file.
     |
     */
 
@@ -59,13 +58,13 @@ return [
     | Application Timezone
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | Here you may specify the default timezone for your application. Booking
+    | and rental dates are business dates in Vietnam, so use Vietnam time by
+    | default while still allowing deployment environments to override it.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Ho_Chi_Minh'),
 
     /*
     |--------------------------------------------------------------------------
@@ -73,8 +72,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | The application locale determines the default locale that will be used
-    | by Laravel's translation / localization methods. This option can be
-    | set to any locale for which you plan to have translation strings.
+    | by the framework's translation and localization services.
     |
     */
 
@@ -111,7 +109,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | These configuration options determine the driver used to determine and
-    | manage Laravel's "maintenance mode" status. The "cache" driver will
+    | manage Laravel's maintenance mode status. The "cache" driver will
     | allow maintenance mode to be controlled across multiple machines.
     |
     | Supported drivers: "file", "cache", "array"
