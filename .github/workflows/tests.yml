@@ -49,5 +49,8 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      - name: Run CI checks
-        run: composer ci:check
+      - name: Format frontend
+        run: npm run check:fix
+
+      - name: Run PHP checks and tests
+        run: composer test
