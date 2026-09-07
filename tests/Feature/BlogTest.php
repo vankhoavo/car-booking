@@ -37,6 +37,24 @@ class BlogTest extends TestCase
             );
     }
 
+    public function test_public_blog_does_not_list_a_future_published_post(): void
+    {
+        BlogPost::create([
+            'title' => 'Bài viết đã lên lịch',
+            'slug' => 'bai-viet-da-len-lich',
+            'content' => 'Chưa đến giờ công khai.',
+            'published_at' => now()->addDay(),
+            'is_published' => true,
+        ]);
+
+        $this->get('/blog')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('blog/Index')
+                ->has('posts', 0)
+            );
+    }
+
     public function test_public_blog_cannot_open_an_unpublished_post(): void
     {
         BlogPost::create([
@@ -47,6 +65,19 @@ class BlogTest extends TestCase
         ]);
 
         $this->get('/blog/ban-nhap')->assertNotFound();
+    }
+
+    public function test_public_blog_cannot_open_a_future_published_post(): void
+    {
+        BlogPost::create([
+            'title' => 'Bài viết đã lên lịch',
+            'slug' => 'bai-viet-da-len-lich',
+            'content' => 'Chưa đến giờ công khai.',
+            'published_at' => now()->addDay(),
+            'is_published' => true,
+        ]);
+
+        $this->get('/blog/bai-viet-da-len-lich')->assertNotFound();
     }
 
     public function test_public_blog_can_open_a_published_post(): void
