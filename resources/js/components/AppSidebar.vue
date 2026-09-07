@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { BookOpen, CalendarCheck, Car, FileText, FolderGit2, KeyRound, LayoutDashboard } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
@@ -20,30 +20,22 @@ import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
 const page = usePage();
+const isAdmin = computed(() => page.props.auth?.user?.role === 'admin');
+const dashboardUrl = computed(() => isAdmin.value ? '/admin' : (page.props.currentTeam ? dashboard(page.props.currentTeam.slug).url : '/'));
 
-const dashboardUrl = computed(() =>
-    page.props.currentTeam ? dashboard(page.props.currentTeam.slug).url : '/',
-);
-
-const mainNavItems = computed<NavItem[]>(() => [
-    {
-        title: 'Dashboard',
-        href: dashboardUrl.value,
-        icon: LayoutGrid,
-    },
+const mainNavItems = computed<NavItem[]>(() => isAdmin.value ? [
+    { title: 'Tổng quan', href: '/admin', icon: LayoutDashboard },
+    { title: 'Đơn đặt xe', href: '/admin/bookings', icon: CalendarCheck },
+    { title: 'Đơn thuê xe', href: '/admin/rentals', icon: KeyRound },
+    { title: 'Quản lý xe', href: '/admin/vehicles', icon: Car },
+    { title: 'Quản lý Blog', href: '/admin/blog', icon: FileText },
+] : [
+    { title: 'Dashboard', href: dashboardUrl.value, icon: LayoutDashboard },
 ]);
 
 const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
+    { title: 'Repository', href: 'https://github.com/laravel/vue-starter-kit', icon: FolderGit2 },
+    { title: 'Documentation', href: 'https://laravel.com/docs/starter-kits#vue', icon: BookOpen },
 ];
 </script>
 
@@ -59,7 +51,7 @@ const footerNavItems: NavItem[] = [
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
-            <SidebarMenu>
+            <SidebarMenu v-if="!isAdmin">
                 <SidebarMenuItem>
                     <TeamSwitcher />
                 </SidebarMenuItem>

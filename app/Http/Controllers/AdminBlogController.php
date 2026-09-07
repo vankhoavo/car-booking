@@ -56,7 +56,7 @@ class AdminBlogController extends Controller
 
         $query = BlogPost::query()->where('slug', $data['slug']);
         if ($post) {
-            $query->whereKeyNot($post->getKey());
+            $query->where('id', '!=', $post->getKey());
         }
 
         if ($query->exists()) {
