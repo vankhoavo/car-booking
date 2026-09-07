@@ -16,13 +16,23 @@ class DatabaseSeeder extends Seeder
     {
         User::firstOrCreate(
             ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'role' => 'user', 'password' => 'password'],
+            ['name' => 'Test User', 'role' => 'user', 'password' => fake()->password(16)],
         );
 
-        User::updateOrCreate(
-            ['email' => 'admin@carbooking.test'],
-            ['name' => 'Quản trị viên', 'role' => 'admin', 'password' => 'Admin@123456'],
-        );
+        $adminEmail = env('ADMIN_EMAIL');
+        $adminPassword = env('ADMIN_PASSWORD');
+
+        if (filled($adminEmail) && filled($adminPassword)) {
+            User::updateOrCreate(
+                ['email' => $adminEmail],
+                [
+                    'name' => 'Quản trị viên',
+                    'role' => 'admin',
+                    'password' => $adminPassword,
+                    'email_verified_at' => now(),
+                ],
+            );
+        }
 
         foreach ([
             ['name' => 'Toyota Vios', 'brand' => 'Toyota', 'model' => 'Vios', 'type' => 'Sedan', 'seats' => 5, 'description' => 'Xe sedan tiết kiệm, phù hợp di chuyển nội thành và đường dài.', 'image' => null, 'price' => 650000, 'status' => 'available'],
