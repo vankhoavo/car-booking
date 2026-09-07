@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { Eye, LogOut, Pencil, Plus } from '@lucide/vue';
 import { ref } from 'vue';
 import CreateTeamModal from '@/components/CreateTeamModal.vue';
