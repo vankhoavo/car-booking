@@ -17,7 +17,7 @@ return [
         'two-factor' => 'two-factor',
         'passkeys' => 'passkeys',
     ],
-    'views' => false,
+    'views' => true,
     'features' => [
         Features::resetPasswords(),
         Features::emailVerification(),
