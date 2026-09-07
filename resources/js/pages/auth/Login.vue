@@ -2,7 +2,6 @@
 import { Form, Head } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
-import PasskeyVerify from '@/components/PasskeyVerify.vue';
 import TeamInvitationAlert from '@/components/TeamInvitationAlert.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -43,8 +42,6 @@ defineProps<{
         :invitation="teamInvitation"
         action="Log in"
     />
-
-    <PasskeyVerify />
 
     <Form
         v-bind="store.form()"
