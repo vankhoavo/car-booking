@@ -25,7 +25,10 @@ const form = useForm({
 });
 
 const minDate = new Date().toISOString().slice(0, 10);
-const selectedVehicle = computed(() => props.vehicles.find((vehicle) => vehicle.id === form.vehicle_id));
+const selectedVehicle = computed<Vehicle | null>(() => {
+    const vehicle = props.vehicles.find((item) => item?.id === form.vehicle_id);
+    return vehicle ?? null;
+});
 const success = computed(() => page.props.flash?.success as string | undefined);
 
 const submit = () => form.post('/dat-xe', {
@@ -69,7 +72,7 @@ const submit = () => form.post('/dat-xe', {
                 </section>
 
                 <aside class="space-y-5 lg:sticky lg:top-24 lg:self-start">
-                    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Xe đã chọn</p><div v-if="selectedVehicle" class="mt-4 overflow-hidden rounded-2xl border border-slate-200"><div class="flex aspect-[16/9] items-center justify-center bg-slate-100"><img v-if="selectedVehicle.image" :src="selectedVehicle.image" :alt="selectedVehicle.name" class="h-full w-full object-cover" /><CarFront v-else class="size-14 text-slate-400" /></div><div class="p-4"><h3 class="text-lg font-black">{{ selectedVehicle.name }}</h3><p class="mt-1 text-sm text-slate-500">{{ selectedVehicle.brand }} · {{ selectedVehicle.model }} · {{ selectedVehicle.seats }} chỗ</p><p v-if="selectedVehicle.description" class="mt-2 text-sm text-slate-500">{{ selectedVehicle.description }}</p></div></div><div v-else class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Bạn có thể để hệ thống tư vấn xe phù hợp.</div></section>
+                    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><p class="text-xs font-bold uppercase tracking-wider text-slate-400">Xe đã chọn</p><div v-if="selectedVehicle" class="mt-4 overflow-hidden rounded-2xl border border-slate-200"><div class="flex aspect-[16/9] items-center justify-center bg-slate-100"><img v-if="selectedVehicle?.image" :src="selectedVehicle.image" :alt="selectedVehicle.name" class="h-full w-full object-cover" /><CarFront v-else class="size-14 text-slate-400" /></div><div class="p-4"><h3 class="text-lg font-black">{{ selectedVehicle.name }}</h3><p class="mt-1 text-sm text-slate-500">{{ selectedVehicle.brand }} · {{ selectedVehicle.model }} · {{ selectedVehicle.seats }} chỗ</p><p v-if="selectedVehicle.description" class="mt-2 text-sm text-slate-500">{{ selectedVehicle.description }}</p></div></div><div v-else class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Bạn có thể để hệ thống tư vấn xe phù hợp.</div></section>
                     <section class="rounded-3xl bg-slate-950 p-5 text-white shadow-xl sm:p-6"><p class="text-sm font-semibold text-slate-300">Sau khi gửi</p><h3 class="mt-2 text-xl font-black">Chúng tôi sẽ liên hệ xác nhận</h3><p class="mt-2 text-sm leading-6 text-slate-400">Yêu cầu được lưu với trạng thái chờ xác nhận. Không yêu cầu thanh toán online.</p><button :disabled="form.processing" class="mt-5 w-full rounded-2xl bg-indigo-500 px-5 py-3.5 font-bold transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60">{{ form.processing ? 'Đang gửi...' : 'Gửi yêu cầu đặt xe' }}</button></section>
                 </aside>
             </form>
