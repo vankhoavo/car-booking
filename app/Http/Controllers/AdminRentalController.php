@@ -30,33 +30,36 @@ class AdminRentalController extends Controller
 
     public function update(Request $request, Rental $rental): RedirectResponse
     {
-        $data = $request->validate(['status' => ['required', Rule::in(['pending', 'confirmed', 'cancelled', 'completed'])]]);
-        $next = $data['status'];
-        $current = $rental->status;
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['pending', 'confirmed', 'cancelled', 'completed'])],
+        ]);
 
-        if ($current !== $next && ! in_array($next, match ($current) {
-            'pending' => ['confirmed', 'cancelled'],
-            'confirmed' => ['completed', 'cancelled'],
-            'cancelled' => [],
-            'completed' => [],
-            default => [],
-        }, true)) {
-            return back()->withErrors(['status' => 'Không thể chuyển đơn sang trạng thái này.']);
-        }
-
-        if ($next !== 'confirmed') {
-            $rental->update(['status' => $next]);
-
-            return back()->with('success', 'Đã cập nhật trạng thái đơn thuê xe.');
-        }
-
-        $result = DB::transaction(function () use ($rental): string {
+        $result = DB::transaction(function () use ($rental, $data): string {
             $lockedRental = Rental::query()->whereKey($rental->id)->lockForUpdate()->firstOrFail();
-            $vehicle = $lockedRental->vehicle()->lockForUpdate()->first();
+            $next = $data['status'];
+            $current = $lockedRental->status;
+            $allowed = match ($current) {
+                'pending' => ['confirmed', 'cancelled'],
+                'confirmed' => ['completed', 'cancelled'],
+                'cancelled', 'completed' => [],
+                default => [],
+            };
 
-            if ($lockedRental->status !== 'pending') {
-                return 'invalid_state';
+            if ($current === $next) {
+                return 'unchanged';
             }
+
+            if (! in_array($next, $allowed, true)) {
+                return 'invalid_transition';
+            }
+
+            if ($next !== 'confirmed') {
+                $lockedRental->update(['status' => $next]);
+
+                return 'updated';
+            }
+
+            $vehicle = $lockedRental->vehicle()->lockForUpdate()->first();
 
             if (! $vehicle || $vehicle->status !== 'available') {
                 return 'unavailable';
@@ -91,10 +94,11 @@ class AdminRentalController extends Controller
 
         return match ($result) {
             'confirmed' => back()->with('success', 'Đã xác nhận đơn thuê xe.'),
+            'updated', 'unchanged' => back()->with('success', 'Đã cập nhật trạng thái đơn thuê xe.'),
             'unavailable' => back()->withErrors(['status' => 'Không thể xác nhận: xe hiện không khả dụng.']),
             'capacity' => back()->withErrors(['status' => 'Không thể xác nhận: số hành khách vượt quá số chỗ của xe.']),
             'conflict' => back()->withErrors(['status' => 'Không thể xác nhận: xe đã có lịch trùng khoảng thời gian.']),
-            default => back()->withErrors(['status' => 'Đơn đã thay đổi trạng thái. Vui lòng tải lại trang.']),
+            default => back()->withErrors(['status' => 'Không thể chuyển đơn sang trạng thái này.']),
         };
     }
 }
