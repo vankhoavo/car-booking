@@ -1,30 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Eye, LogOut, Pencil, Plus } from '@lucide/vue';
-import { ref } from 'vue';
-import CreateTeamModal from '@/components/CreateTeamModal.vue';
-import Heading from '@/components/Heading.vue';
-import LeaveTeamModal from '@/components/LeaveTeamModal.vue';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { edit, index } from '@/routes/teams';
-import type { Team } from '@/types';
+import AppLayout from '@/layouts/AppLayout.vue';
+import { dashboard } from '@/routes';
+import type { BreadcrumbItem } from '@/types';
 
-type Props = { teams: Team[] };
-defineProps<Props>();
-const leaveTeamDialogOpen = ref(false);
-const teamLeaving = ref<Team | null>(null);
-const canLeaveTeam = (team: Team) => !team.isPersonal && team.role !== 'owner';
-const openLeaveTeamDialog = (team: Team) => { teamLeaving.value = team; leaveTeamDialogOpen.value = true; };
-defineOptions({ layout: { breadcrumbs: [{ title: 'Teams', href: index() }] } });
+type Team={id:number;name:string;slug:string};
+const props=defineProps<{teams:Team[]}>();
+const breadcrumbs:BreadcrumbItem[]=[{title:'Teams',href:'/teams'}];
 </script>
-<template>
-<Head title="Teams" />
-<h1 class="sr-only">Teams</h1>
-<div class="flex flex-col space-y-6 px-1 sm:px-0">
-<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><Heading variant="small" title="Teams" description="Manage your teams and team memberships" /><CreateTeamModal><Button data-test="teams-new-team-button" class="w-full sm:w-auto"><Plus /> New team</Button></CreateTeamModal></div>
-<div class="space-y-3"><div v-for="team in teams" :key="team.id" data-test="team-row" class="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"><div class="min-w-0"><div class="flex flex-wrap items-center gap-2"><span class="break-words font-medium">{{ team.name }}</span><Badge v-if="team.isPersonal" variant="secondary">Personal</Badge></div><span class="text-muted-foreground text-sm">{{ team.roleLabel }}</span></div><TooltipProvider><div class="flex shrink-0 items-center gap-2 self-end sm:self-auto"><Tooltip v-if="canLeaveTeam(team)"><TooltipTrigger as-child><Button data-test="team-leave-button" variant="ghost" size="sm" @click="openLeaveTeamDialog(team)"><LogOut class="h-4 w-4" /></Button></TooltipTrigger><TooltipContent><p>Leave team</p></TooltipContent></Tooltip><Tooltip v-if="team.role === 'member'"><TooltipTrigger as-child><Button data-test="team-view-button" variant="ghost" size="sm" as-child><Link :href="edit(team.slug)"><Eye class="h-4 w-4" /></Link></Button></TooltipTrigger><TooltipContent><p>View team</p></TooltipContent></Tooltip><Tooltip v-else><TooltipTrigger as-child><Button data-test="team-edit-button" variant="ghost" size="sm" as-child><Link :href="edit(team.slug)"><Pencil class="h-4 w-4" /></Link></Button></TooltipTrigger><TooltipContent><p>Edit team</p></TooltipContent></Tooltip></div></TooltipProvider></div><p v-if="teams.length === 0" class="text-muted-foreground py-8 text-center">You don't belong to any teams yet.</p></div>
-</div>
-<LeaveTeamModal v-model:open="leaveTeamDialogOpen" :team="teamLeaving" />
-</template>
+<template><AppLayout :breadcrumbs="breadcrumbs"><Head title="Teams"/><div class="flex min-w-0 flex-col gap-4 p-3 sm:p-6 lg:p-8"><div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><h1 class="text-xl font-semibold">Teams</h1><p class="text-sm text-muted-foreground">Quản lý các nhóm của bạn.</p></div><Link :href="dashboard()" class="rounded-md bg-primary px-4 py-2 text-center text-sm font-medium text-primary-foreground">Dashboard</Link></div><div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"> <Link v-for="team in props.teams" :key="team.id" :href="`/teams/${team.id}/edit`" class="min-w-0 rounded-lg border p-4 transition hover:bg-muted/50"><div class="truncate font-medium">{{team.name}}</div><div class="truncate text-sm text-muted-foreground">{{team.slug}}</div></Link><div v-if="!props.teams.length" class="rounded-lg border p-6 text-center text-sm text-muted-foreground sm:col-span-2 lg:col-span-3">Chưa có nhóm.</div></div></div></AppLayout></template>
