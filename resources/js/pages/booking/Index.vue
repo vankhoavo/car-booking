@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, CalendarDays, CarFront, CheckCircle2, Clock3, MapPin, Route, ShieldCheck, Users } from 'lucide-vue';
+import { ArrowLeft, CalendarDays, CarFront, CheckCircle2, Clock3, MapPin, Route, ShieldCheck, Users } from '@lucide/vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import type { BreadcrumbItem } from '@/types';
 
