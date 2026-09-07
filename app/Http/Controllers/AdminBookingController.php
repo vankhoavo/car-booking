@@ -27,33 +27,36 @@ class AdminBookingController extends Controller
 
     public function update(Request $request, Booking $booking): RedirectResponse
     {
-        $data = $request->validate(['status' => ['required', Rule::in(['pending', 'confirmed', 'cancelled', 'completed'])]]);
-        $next = $data['status'];
-        $current = $booking->status;
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['pending', 'confirmed', 'cancelled', 'completed'])],
+        ]);
 
-        if ($current !== $next && ! in_array($next, match ($current) {
-            'pending' => ['confirmed', 'cancelled'],
-            'confirmed' => ['completed', 'cancelled'],
-            'cancelled' => [],
-            'completed' => [],
-            default => [],
-        }, true)) {
-            return back()->withErrors(['status' => 'Không thể chuyển đơn sang trạng thái này.']);
-        }
-
-        if ($next !== 'confirmed') {
-            $booking->update(['status' => $next]);
-
-            return back()->with('success', 'Đã cập nhật trạng thái đơn đặt xe.');
-        }
-
-        $result = DB::transaction(function () use ($booking): string {
+        $result = DB::transaction(function () use ($booking, $data): string {
             $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
-            $vehicle = $lockedBooking->vehicle()->lockForUpdate()->first();
+            $next = $data['status'];
+            $current = $lockedBooking->status;
+            $allowed = match ($current) {
+                'pending' => ['confirmed', 'cancelled'],
+                'confirmed' => ['completed', 'cancelled'],
+                'cancelled', 'completed' => [],
+                default => [],
+            };
 
-            if ($lockedBooking->status !== 'pending') {
-                return 'invalid_state';
+            if ($current === $next) {
+                return 'unchanged';
             }
+
+            if (! in_array($next, $allowed, true)) {
+                return 'invalid_transition';
+            }
+
+            if ($next !== 'confirmed') {
+                $lockedBooking->update(['status' => $next]);
+
+                return 'updated';
+            }
+
+            $vehicle = $lockedBooking->vehicle()->lockForUpdate()->first();
 
             if (! $vehicle || $vehicle->status !== 'available') {
                 return 'unavailable';
@@ -64,7 +67,7 @@ class AdminBookingController extends Controller
             }
 
             $bookingConflict = Booking::query()
-                ->where('id', '!=', $lockedBooking->id)
+                ->whereKeyNot($lockedBooking->id)
                 ->where('vehicle_id', $vehicle->id)
                 ->whereDate('travel_date', $lockedBooking->travel_date)
                 ->whereIn('status', ['pending', 'confirmed'])
@@ -88,10 +91,11 @@ class AdminBookingController extends Controller
 
         return match ($result) {
             'confirmed' => back()->with('success', 'Đã xác nhận đơn đặt xe.'),
+            'updated', 'unchanged' => back()->with('success', 'Đã cập nhật trạng thái đơn đặt xe.'),
             'unavailable' => back()->withErrors(['status' => 'Không thể xác nhận: xe hiện không khả dụng.']),
             'capacity' => back()->withErrors(['status' => 'Không thể xác nhận: số hành khách vượt quá số chỗ của xe.']),
             'conflict' => back()->withErrors(['status' => 'Không thể xác nhận: xe đã có lịch trùng ngày.']),
-            default => back()->withErrors(['status' => 'Đơn đã thay đổi trạng thái. Vui lòng tải lại trang.']),
+            default => back()->withErrors(['status' => 'Không thể chuyển đơn sang trạng thái này.']),
         };
     }
 }
