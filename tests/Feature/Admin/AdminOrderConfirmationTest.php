@@ -88,6 +88,36 @@ class AdminOrderConfirmationTest extends TestCase
         $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'pending']);
     }
 
+    public function test_admin_auto_assigns_an_available_vehicle_when_confirming_unassigned_booking(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin', 'email_verified_at' => now()]);
+        $small = Vehicle::create([
+            'name' => 'Toyota Vios', 'brand' => 'Toyota', 'model' => 'Vios',
+            'type' => 'Sedan', 'seats' => 4, 'price' => 650000, 'status' => 'available',
+        ]);
+        $large = Vehicle::create([
+            'name' => 'Toyota Innova', 'brand' => 'Toyota', 'model' => 'Innova',
+            'type' => 'MPV', 'seats' => 7, 'price' => 900000, 'status' => 'available',
+        ]);
+        $booking = Booking::create([
+            'vehicle_id' => null, 'customer_name' => 'Customer', 'phone' => '0901234567',
+            'email' => 'customer@example.com', 'pickup_location' => 'Da Nang', 'destination' => 'Hoi An',
+            'travel_date' => now()->addDays(3)->toDateString(), 'pickup_time' => '09:00',
+            'passengers' => 6, 'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin)
+            ->put("/admin/bookings/{$booking->id}", ['status' => 'confirmed'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('bookings', [
+            'id' => $booking->id,
+            'vehicle_id' => $large->id,
+            'status' => 'confirmed',
+        ]);
+        $this->assertDatabaseHas('vehicles', ['id' => $small->id, 'status' => 'available']);
+    }
+
     public function test_admin_cannot_reduce_vehicle_capacity_below_active_orders(): void
     {
         $admin = User::factory()->create(['role' => 'admin', 'email_verified_at' => now()]);
