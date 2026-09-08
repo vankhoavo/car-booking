@@ -84,8 +84,7 @@ function Run-Cloud-Artisan([string] $Command) {
     Invoke-External 'cloud' @(
         'command:run',
         'production',
-        '--cmd=' + $Command,
-        '--no-monitor'
+        '--cmd=' + $Command
     )
 }
 
