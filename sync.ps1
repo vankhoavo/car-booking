@@ -73,9 +73,16 @@ function Invoke-External([string] $File, [string[]] $Arguments) {
     }
 }
 
+function Invoke-Cloud([string[]] $Arguments) {
+    & 'cloud' @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        Fail "Laravel Cloud command failed (exit code $LASTEXITCODE)"
+    }
+}
+
 function Run-Cloud-Artisan([string] $Command) {
     Write-Host "Cloud Artisan: $Command" -ForegroundColor Yellow
-    Invoke-External 'cloud' @('command:run', 'production', ('--cmd=' + $Command))
+    Invoke-Cloud @('command:run', 'production', ('--cmd=' + $Command))
 }
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -85,6 +92,8 @@ $envFile = Join-Path $ProjectRoot '.env'
 $localEnv = Read-DotEnv $envFile
 $syncDir = Join-Path $ProjectRoot '.sync'
 $dumpFile = Join-Path $syncDir 'local-database.sql'
+$phpIniDir = Join-Path $syncDir 'php-cli'
+$phpIniFile = Join-Path $phpIniDir '99-cloud-memory.ini'
 New-Item -ItemType Directory -Path $syncDir -Force | Out-Null
 
 Write-Host ''
@@ -107,7 +116,20 @@ if ($Scope -in @('full', 'code')) {
     }
 
     Write-Host 'Checking Laravel Cloud CLI...' -ForegroundColor Yellow
-    Invoke-External 'cloud' @('list')
+    $previousPhpIniScanDir = $env:PHP_INI_SCAN_DIR
+    try {
+        New-Item -ItemType Directory -Path $phpIniDir -Force | Out-Null
+        Set-Content -Path $phpIniFile -Value 'memory_limit=512M' -Encoding ASCII
+        $env:PHP_INI_SCAN_DIR = $phpIniDir
+        Invoke-Cloud @('--version')
+    }
+    finally {
+        if ($null -eq $previousPhpIniScanDir) {
+            Remove-Item Env:PHP_INI_SCAN_DIR -ErrorAction SilentlyContinue
+        } else {
+            $env:PHP_INI_SCAN_DIR = $previousPhpIniScanDir
+        }
+    }
 }
 
 if ($Scope -in @('full', 'code')) {
@@ -115,7 +137,19 @@ if ($Scope -in @('full', 'code')) {
     Invoke-External 'git' @('push', 'origin', 'main')
 
     Write-Host '2/5 Deploy main to Laravel Cloud...' -ForegroundColor Yellow
-    Invoke-External 'cloud' @('deploy')
+    $previousPhpIniScanDir = $env:PHP_INI_SCAN_DIR
+    try {
+        Set-Content -Path $phpIniFile -Value 'memory_limit=512M' -Encoding ASCII
+        $env:PHP_INI_SCAN_DIR = $phpIniDir
+        Invoke-Cloud @('deploy', '--no-interaction')
+    }
+    finally {
+        if ($null -eq $previousPhpIniScanDir) {
+            Remove-Item Env:PHP_INI_SCAN_DIR -ErrorAction SilentlyContinue
+        } else {
+            $env:PHP_INI_SCAN_DIR = $previousPhpIniScanDir
+        }
+    }
     Write-Host 'Code deployment completed.' -ForegroundColor Green
 }
 
@@ -205,6 +239,7 @@ if ($Scope -in @('full', 'database')) {
 }
 
 if (Test-Path $dumpFile) { Remove-Item $dumpFile -Force }
+if (Test-Path $phpIniDir) { Remove-Item $phpIniDir -Recurse -Force }
 
 Write-Host ''
 Write-Host '=== SYNC COMPLETE ===' -ForegroundColor Green
