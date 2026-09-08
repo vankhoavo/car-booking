@@ -5,6 +5,7 @@ use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminRentalController;
 use App\Http\Controllers\AdminVehicleController;
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RentalController;
@@ -12,7 +13,6 @@ use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureTeamMembership;
-use App\Models\Vehicle;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -31,6 +31,9 @@ Route::get('/dat-xe', [BookingController::class, 'create'])->name('booking.index
 Route::post('/dat-xe', [BookingController::class, 'store'])->name('booking.store');
 Route::get('/thue-xe', [RentalController::class, 'create'])->name('rental.index');
 Route::post('/thue-xe', [RentalController::class, 'store'])->name('rental.store');
+Route::get('/tour', fn () => Inertia::render('tour/Index'))->name('tour.index');
+Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
+Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
 
 Route::prefix('api')->group(function () {
     Route::get('/vehicles', [VehicleController::class, 'index']);
