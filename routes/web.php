@@ -12,9 +12,21 @@ use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureTeamMembership;
+use App\Models\Vehicle;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-Route::redirect('/', '/dat-xe')->name('home');
+Route::get('/', function () {
+    return Inertia::render('Welcome', [
+        'vehicles' => Vehicle::query()
+            ->where('status', 'available')
+            ->orderBy('seats')
+            ->orderBy('name')
+            ->limit(6)
+            ->get(['id', 'name', 'brand', 'model', 'type', 'seats', 'image', 'price']),
+    ]);
+})->name('home');
+
 Route::get('/dat-xe', [BookingController::class, 'create'])->name('booking.index');
 Route::post('/dat-xe', [BookingController::class, 'store'])->name('booking.store');
 Route::get('/thue-xe', [RentalController::class, 'create'])->name('rental.index');
