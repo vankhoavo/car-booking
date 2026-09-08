@@ -54,7 +54,7 @@ function Get-ValueOrPrompt([hashtable] $EnvValues, [string] $Key, [string] $Prom
         return $existing
     }
 
-    if ($EnvValues.ContainsKey($Key) -and $EnvValues[$Key] -ne '') {
+    if ($EnvValues.ContainsKey($Key)) {
         return $EnvValues[$Key]
     }
 
@@ -108,7 +108,7 @@ if ($Scope -in @('full', 'code')) {
         Fail "Working tree chưa sạch. Hãy commit/stash thay đổi trước khi đồng bộ để tránh deploy code chưa được kiểm soát."
     }
 
-    Write-Host 'Kiểm tra Cloud CLI...' -ForegroundColor Yellow
+    Write-Host 'Kiểm tra Laravel Cloud CLI...' -ForegroundColor Yellow
     Invoke-External 'cloud' @('list')
 }
 
@@ -170,14 +170,15 @@ if ($Scope -in @('full', 'database')) {
     Write-Host '2/3 Import database vào Cloud...' -ForegroundColor Yellow
     $env:MYSQL_PWD = $cloudPassword
     try {
-        Invoke-External 'mysql' @(
+        $mysqlArgs = @(
             '--host=' + $cloudHost,
             '--port=' + $cloudPort,
             '--user=' + $cloudUser,
             '--default-character-set=utf8mb4',
-            $cloudName,
-            '--execute=source ' + $dumpFile.Replace('\', '/')
+            $cloudName
         )
+        $commandLine = 'mysql ' + (($mysqlArgs | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' ') + ' < "' + $dumpFile + '"'
+        Invoke-External 'cmd.exe' @('/d', '/s', '/c', $commandLine)
     }
     finally {
         Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
