@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import type { SidebarProps } from "."
+<script setup lang="ts"
+import type { HTMLAttributes } from "vue"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import SheetDescription from '@/components/ui/sheet/SheetDescription.vue'
@@ -7,9 +7,7 @@ import SheetHeader from '@/components/ui/sheet/SheetHeader.vue'
 import SheetTitle from '@/components/ui/sheet/SheetTitle.vue'
 import { SIDEBAR_WIDTH_MOBILE, useSidebar } from "./utils"
 
-defineOptions({
-  inheritAttrs: false,
-})
+defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(defineProps<SidebarProps>(), {
   side: "left",
@@ -37,9 +35,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
       data-mobile="true"
       :side="side"
       class="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
-      :style="{
-        '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-      }"
+      :style="{ '--sidebar-width': SIDEBAR_WIDTH_MOBILE }"
     >
       <SheetHeader class="sr-only">
         <SheetTitle>Sidebar</SheetTitle>
@@ -51,29 +47,15 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
     </SheetContent>
   </Sheet>
 
-  <div
-    v-else
-    class="group peer text-sidebar-foreground"
-    data-slot="sidebar"
-    :data-state="state"
-    :data-collapsible="state === 'collapsed' ? collapsible : ''"
-    :data-variant="variant"
-    :data-side="side"
-  >
-    <!-- This is what handles the sidebar gap on desktop -->
+  <template v-else>
     <div
+      class="group peer fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex"
+      data-slot="sidebar"
+      :data-state="state"
+      :data-collapsible="state === 'collapsed' ? collapsible : ''"
+      :data-variant="variant"
+      :data-side="side"
       :class="cn(
-        'relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear',
-        'group-data-[collapsible=offcanvas]:w-0',
-        'group-data-[side=right]:rotate-180',
-        variant === 'floating' || variant === 'inset'
-          ? 'group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]'
-          : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
-      )"
-    />
-    <div
-      :class="cn(
-        'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
         side === 'left'
           ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
           : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
@@ -91,5 +73,5 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
         <slot />
       </div>
     </div>
-  </div>
+  </template>
 </template>
