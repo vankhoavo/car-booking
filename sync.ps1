@@ -79,6 +79,16 @@ function Invoke-External([string] $File, [string[]] $Arguments) {
     }
 }
 
+function Run-Cloud-Artisan([string] $Command) {
+    Write-Host "Cloud Artisan: $Command" -ForegroundColor Yellow
+    Invoke-External 'cloud' @(
+        'command:run',
+        'production',
+        '--cmd=' + $Command,
+        '--no-monitor'
+    )
+}
+
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $ProjectRoot
 
@@ -95,9 +105,11 @@ Write-Host ''
 
 Require-Command 'git'
 
-if ($Scope -in @('full', 'code')) {
+if ($Scope -in @('full', 'code', 'database')) {
     Require-Command 'cloud'
+}
 
+if ($Scope -in @('full', 'code')) {
     $branch = (git branch --show-current).Trim()
     if ($branch -ne 'main') {
         Fail "Script chỉ đồng bộ từ nhánh main. Nhánh hiện tại: '$branch'."
@@ -110,6 +122,19 @@ if ($Scope -in @('full', 'code')) {
 
     Write-Host 'Kiểm tra Laravel Cloud CLI...' -ForegroundColor Yellow
     Invoke-External 'cloud' @('list')
+}
+
+# FULL: deploy code first so Cloud runs the same application version that will
+# receive the database migration/seed. CODE: only deploy code. DATABASE: only
+# synchronize the database and then run the remote migration/seed.
+if ($Scope -in @('full', 'code')) {
+    Write-Host '1/5 Đẩy main lên GitHub...' -ForegroundColor Yellow
+    Invoke-External 'git' @('push', 'origin', 'main')
+
+    Write-Host '2/5 Deploy main lên Laravel Cloud...' -ForegroundColor Yellow
+    Invoke-External 'cloud' @('deploy')
+
+    Write-Host 'Deploy code hoàn tất.' -ForegroundColor Green
 }
 
 if ($Scope -in @('full', 'database')) {
@@ -142,7 +167,7 @@ if ($Scope -in @('full', 'database')) {
         Remove-Item $dumpFile -Force
     }
 
-    Write-Host '1/3 Export database local...' -ForegroundColor Yellow
+    Write-Host '3/5 Export database local...' -ForegroundColor Yellow
     $env:MYSQL_PWD = $localPassword
     try {
         Invoke-External 'mysqldump' @(
@@ -167,7 +192,7 @@ if ($Scope -in @('full', 'database')) {
         Fail 'Không tạo được database dump local.'
     }
 
-    Write-Host '2/3 Import database vào Cloud...' -ForegroundColor Yellow
+    Write-Host '4/5 Import database vào Cloud...' -ForegroundColor Yellow
     $env:MYSQL_PWD = $cloudPassword
     try {
         $mysqlArgs = @(
@@ -185,17 +210,13 @@ if ($Scope -in @('full', 'database')) {
         Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
     }
 
-    Write-Host '3/3 Đồng bộ database hoàn tất.' -ForegroundColor Green
-}
+    Write-Host 'Database import hoàn tất.' -ForegroundColor Green
 
-if ($Scope -in @('full', 'code')) {
-    Write-Host 'Đẩy main lên GitHub...' -ForegroundColor Yellow
-    Invoke-External 'git' @('push', 'origin', 'main')
+    Write-Host '5/5 Chạy migrate và seed trên Laravel Cloud...' -ForegroundColor Yellow
+    Run-Cloud-Artisan 'php artisan migrate --force'
+    Run-Cloud-Artisan 'php artisan db:seed --force'
 
-    Write-Host 'Deploy main lên Laravel Cloud...' -ForegroundColor Yellow
-    Invoke-External 'cloud' @('deploy')
-
-    Write-Host 'Code deploy hoàn tất.' -ForegroundColor Green
+    Write-Host 'Migrate + seed hoàn tất.' -ForegroundColor Green
 }
 
 if (Test-Path $dumpFile) {
@@ -204,4 +225,4 @@ if (Test-Path $dumpFile) {
 
 Write-Host ''
 Write-Host '=== SYNC HOÀN TẤT ===' -ForegroundColor Green
-Write-Host 'Local -> Cloud: thành công.' -ForegroundColor Green
+Write-Host 'Local -> Cloud: code + database + migrate + seed.' -ForegroundColor Green
