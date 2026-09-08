@@ -49,7 +49,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
   <div
     v-else
-    class="group peer fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex"
+    class="group peer fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear"
     data-slot="sidebar"
     :data-state="state"
     :data-collapsible="state === 'collapsed' ? collapsible : ''"
