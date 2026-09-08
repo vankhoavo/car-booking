@@ -5,7 +5,6 @@ use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminRentalController;
 use App\Http\Controllers\AdminVehicleController;
-use App\Http\Controllers\BlogController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\RentalController;
@@ -13,22 +12,13 @@ use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureTeamMembership;
-use App\Models\Vehicle;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'vehicles' => Vehicle::query()->where('status', 'available')->orderBy('name')->limit(6)->get(['id', 'name', 'brand', 'model', 'type', 'seats', 'image', 'price']),
-    ]);
-})->name('home');
+Route::redirect('/', '/dat-xe')->name('home');
 Route::get('/dat-xe', [BookingController::class, 'create'])->name('booking.index');
 Route::post('/dat-xe', [BookingController::class, 'store'])->name('booking.store');
 Route::get('/thue-xe', [RentalController::class, 'create'])->name('rental.index');
 Route::post('/thue-xe', [RentalController::class, 'store'])->name('rental.store');
-Route::get('/tour', fn () => Inertia::render('tour/Index'))->name('tour.index');
-Route::get('/blog', [BlogController::class, 'index'])->name('blog.index');
-Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('blog.show');
 
 Route::prefix('api')->group(function () {
     Route::get('/vehicles', [VehicleController::class, 'index']);
@@ -51,11 +41,14 @@ Route::prefix('admin')->middleware(['auth', 'verified', EnsureAdmin::class])->gr
     Route::put('/blog/{blogPost}', [AdminBlogController::class, 'update'])->name('admin.blog.update');
     Route::delete('/blog/{blogPost}', [AdminBlogController::class, 'destroy'])->name('admin.blog.destroy');
 });
+
 Route::prefix('{current_team}')->middleware(['auth', 'verified', EnsureTeamMembership::class])->group(function () {
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 });
+
 Route::middleware(['auth'])->group(function () {
     Route::post('invitations/{invitation}/accept', [TeamInvitationController::class, 'accept'])->name('invitations.accept');
     Route::delete('invitations/{invitation}', [TeamInvitationController::class, 'decline'])->name('invitations.decline');
 });
+
 require __DIR__.'/settings.php';
