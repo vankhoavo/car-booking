@@ -19,7 +19,7 @@ function Fail([string] $Message) {
 
 function Require-Command([string] $Name) {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
-        Fail "Không tìm thấy '$Name'. Hãy cài công cụ này và chạy lại."
+        Fail "Required command not found: $Name"
     }
 }
 
@@ -30,12 +30,15 @@ function Read-DotEnv([string] $Path) {
     foreach ($line in Get-Content -Path $Path -Encoding UTF8) {
         $trimmed = $line.Trim()
         if (-not $trimmed -or $trimmed.StartsWith('#')) { continue }
-
         if ($trimmed -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
             $key = $Matches[1]
             $value = $Matches[2].Trim()
-            if ($value.Length -ge 2 -and (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'")))) {
-                $value = $value.Substring(1, $value.Length - 2)
+            if ($value.Length -ge 2) {
+                $first = $value.Substring(0, 1)
+                $last = $value.Substring($value.Length - 1, 1)
+                if (($first -eq '"' -and $last -eq '"') -or ($first -eq "'" -and $last -eq "'")) {
+                    $value = $value.Substring(1, $value.Length - 2)
+                }
             }
             $values[$key] = $value
         }
@@ -52,8 +55,12 @@ function Get-ValueOrPrompt([hashtable] $EnvValues, [string] $Key, [string] $Prom
     if ($Secret) {
         $secure = Read-Host -Prompt $Prompt -AsSecureString
         $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-        try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
-        finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
+        try {
+            return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
+        }
+        finally {
+            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
+        }
     }
 
     return Read-Host -Prompt $Prompt
@@ -61,12 +68,14 @@ function Get-ValueOrPrompt([hashtable] $EnvValues, [string] $Key, [string] $Prom
 
 function Invoke-External([string] $File, [string[]] $Arguments) {
     & $File @Arguments
-    if ($LASTEXITCODE -ne 0) { Fail "Lệnh '$File' thất bại với mã $LASTEXITCODE." }
+    if ($LASTEXITCODE -ne 0) {
+        Fail "Command failed: $File (exit code $LASTEXITCODE)"
+    }
 }
 
 function Run-Cloud-Artisan([string] $Command) {
     Write-Host "Cloud Artisan: $Command" -ForegroundColor Yellow
-    Invoke-External 'cloud' @('command:run', 'production', '--cmd=' + $Command)
+    Invoke-External 'cloud' @('command:run', 'production', ('--cmd=' + $Command))
 }
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -80,31 +89,34 @@ New-Item -ItemType Directory -Path $syncDir -Force | Out-Null
 
 Write-Host ''
 Write-Host '=== Car Booking: local-to-cloud ===' -ForegroundColor Cyan
-Write-Host "Phạm vi: $Scope"
+Write-Host "Scope: $Scope"
 Write-Host ''
 
 Require-Command 'git'
-
-if ($Scope -in @('full', 'code', 'database')) { Require-Command 'cloud' }
+Require-Command 'cloud'
 
 if ($Scope -in @('full', 'code')) {
     $branch = (git branch --show-current).Trim()
-    if ($branch -ne 'main') { Fail "Script chỉ đồng bộ từ nhánh main. Nhánh hiện tại: '$branch'." }
+    if ($branch -ne 'main') {
+        Fail "This script only syncs from main. Current branch: $branch"
+    }
 
     $status = @(git status --porcelain)
-    if ($status.Count -gt 0) { Fail 'Working tree chưa sạch. Hãy commit hoặc stash thay đổi trước khi đồng bộ.' }
+    if ($status.Count -gt 0) {
+        Fail 'Working tree is not clean. Commit or stash changes before syncing.'
+    }
 
-    Write-Host 'Kiểm tra Laravel Cloud CLI...' -ForegroundColor Yellow
+    Write-Host 'Checking Laravel Cloud CLI...' -ForegroundColor Yellow
     Invoke-External 'cloud' @('list')
 }
 
 if ($Scope -in @('full', 'code')) {
-    Write-Host '1/5 Đẩy main lên GitHub...' -ForegroundColor Yellow
+    Write-Host '1/5 Push main to GitHub...' -ForegroundColor Yellow
     Invoke-External 'git' @('push', 'origin', 'main')
 
-    Write-Host '2/5 Deploy main lên Laravel Cloud...' -ForegroundColor Yellow
+    Write-Host '2/5 Deploy main to Laravel Cloud...' -ForegroundColor Yellow
     Invoke-External 'cloud' @('deploy')
-    Write-Host 'Deploy code hoàn tất.' -ForegroundColor Green
+    Write-Host 'Code deployment completed.' -ForegroundColor Green
 }
 
 if ($Scope -in @('full', 'database')) {
@@ -124,22 +136,24 @@ if ($Scope -in @('full', 'database')) {
     $cloudPassword = Get-ValueOrPrompt @{} 'CLOUD_DB_PASSWORD' 'Cloud DB password' -Secret
 
     Write-Host ''
-    Write-Host "Local : $localUser@$localHost`:$localPort/$localName"
-    Write-Host "Cloud : $cloudUser@$cloudHost`:$cloudPort/$cloudName"
+    Write-Host "Local: $localUser@$localHost`:$localPort/$localName"
+    Write-Host "Cloud: $cloudUser@$cloudHost`:$cloudPort/$cloudName"
     Write-Host ''
-    Write-Warning 'FULL DATABASE SYNC sẽ ghi dữ liệu local vào Cloud và có thể thay thế dữ liệu hiện có.'
-    $confirm = Read-Host 'Gõ SYNC để tiếp tục'
-    if ($confirm -ne 'SYNC') { Fail 'Đã huỷ đồng bộ database.' }
+    Write-Warning 'This database sync writes local data to Cloud and may replace existing Cloud data.'
+    $confirm = Read-Host 'Type SYNC to continue'
+    if ($confirm -ne 'SYNC') {
+        Fail 'Database sync cancelled.'
+    }
 
     if (Test-Path $dumpFile) { Remove-Item $dumpFile -Force }
 
-    Write-Host '3/5 Export database local...' -ForegroundColor Yellow
+    Write-Host '3/5 Export local database...' -ForegroundColor Yellow
     $env:MYSQL_PWD = $localPassword
     try {
         Invoke-External 'mysqldump' @(
-            '--host=' + $localHost,
-            '--port=' + $localPort,
-            '--user=' + $localUser,
+            ('--host=' + $localHost),
+            ('--port=' + $localPort),
+            ('--user=' + $localUser),
             '--single-transaction',
             '--routines',
             '--triggers',
@@ -147,42 +161,51 @@ if ($Scope -in @('full', 'database')) {
             '--default-character-set=utf8mb4',
             '--add-drop-table',
             $localName,
-            '--result-file=' + $dumpFile
+            ('--result-file=' + $dumpFile)
         )
     }
-    finally { Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue }
+    finally {
+        Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
+    }
 
-    if (-not (Test-Path $dumpFile) -or (Get-Item $dumpFile).Length -eq 0) { Fail 'Không tạo được database dump local.' }
+    if (-not (Test-Path $dumpFile) -or (Get-Item $dumpFile).Length -eq 0) {
+        Fail 'Local database dump was not created.'
+    }
 
-    Write-Host '4/5 Import database vào Cloud...' -ForegroundColor Yellow
+    Write-Host '4/5 Import database into Cloud...' -ForegroundColor Yellow
     $env:MYSQL_PWD = $cloudPassword
     try {
         $mysqlArgs = @(
-            '--host=' + $cloudHost,
-            '--port=' + $cloudPort,
-            '--user=' + $cloudUser,
+            ('--host=' + $cloudHost),
+            ('--port=' + $cloudPort),
+            ('--user=' + $cloudUser),
             '--default-character-set=utf8mb4',
             $cloudName
         )
-        $escapedArgs = ($mysqlArgs | ForEach-Object { [char]34 + $_.Replace([char]34, [char]92 + [char]34) + [char]34 }) -join ' '
+
         $quote = [char]34
-        $commandLine = 'mysql {0} < {1}{2}{1}' -f $escapedArgs, $quote, $dumpFile
+        $escapedArgs = ($mysqlArgs | ForEach-Object {
+            $quote + $_.Replace($quote, ([char]92 + $quote)) + $quote
+        }) -join ' '
+        $commandLine = 'mysql ' + $escapedArgs + ' < ' + $quote + $dumpFile + $quote
         Invoke-External 'cmd.exe' @('/d', '/s', '/c', $commandLine)
     }
-    finally { Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue }
+    finally {
+        Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
+    }
 
-    Write-Host 'Database import hoàn tất.' -ForegroundColor Green
+    Write-Host 'Database import completed.' -ForegroundColor Green
 
     if ($Scope -eq 'full') {
-        Write-Host '5/5 Chạy migrate và seed trên Laravel Cloud...' -ForegroundColor Yellow
+        Write-Host '5/5 Run migrations and seed on Laravel Cloud...' -ForegroundColor Yellow
         Run-Cloud-Artisan 'php artisan migrate --force'
         Run-Cloud-Artisan 'php artisan db:seed --force'
-        Write-Host 'Migrate + seed hoàn tất.' -ForegroundColor Green
+        Write-Host 'Migrations and seed completed.' -ForegroundColor Green
     }
 }
 
 if (Test-Path $dumpFile) { Remove-Item $dumpFile -Force }
 
 Write-Host ''
-Write-Host '=== SYNC HOÀN TẤT ===' -ForegroundColor Green
+Write-Host '=== SYNC COMPLETE ===' -ForegroundColor Green
 Write-Host 'Local -> Cloud: code + database + migrate + seed.' -ForegroundColor Green
