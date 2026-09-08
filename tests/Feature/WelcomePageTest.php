@@ -13,8 +13,8 @@ test('homepage exposes exactly six available vehicles', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('Welcome')
             ->has('vehicles', 6)
-            ->where('vehicles.0.name', 'Toyota Vios')
-            ->where('vehicles.1.name', 'Toyota Corolla Altis')
+            ->where('vehicles.0.name', 'Toyota Corolla Altis')
+            ->where('vehicles.1.name', 'Toyota Vios')
             ->where('vehicles.2.name', 'Toyota Innova')
             ->where('vehicles.3.name', 'Ford Everest')
             ->where('vehicles.4.name', 'Kia Carnival')
