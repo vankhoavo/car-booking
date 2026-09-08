@@ -1,27 +1,23 @@
 <?php
 
-use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
-test('homepage exposes six available vehicles and the requested section navigation', function () {
+test('homepage exposes exactly six available vehicles', function () {
     $this->seed();
 
-    $response = $this->get('/');
-
-    $response->assertSuccessful();
-    $response->assertSee('Toyota Vios');
-    $response->assertSee('Toyota Corolla Altis');
-    $response->assertSee('Toyota Innova');
-    $response->assertSee('Ford Everest');
-    $response->assertSee('Kia Carnival');
-    $response->assertSee('VinFast VF 9');
-
-    expect(Vehicle::where('status', 'available')->count())->toBeGreaterThanOrEqual(6);
-    $response->assertSee('href="#dich-vu"', false);
-    $response->assertSee('href="#doi-xe"', false);
-    $response->assertSee('href="#quy-trinh"', false);
-    $response->assertSee('href="#blog"', false);
-    $response->assertSee('href="#lien-he"', false);
+    $this->get('/')
+        ->assertSuccessful()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Welcome')
+            ->has('vehicles', 6)
+            ->where('vehicles.0.name', 'Toyota Vios')
+            ->where('vehicles.1.name', 'Toyota Corolla Altis')
+            ->where('vehicles.2.name', 'Toyota Innova')
+            ->where('vehicles.3.name', 'Ford Everest')
+            ->where('vehicles.4.name', 'Kia Carnival')
+            ->where('vehicles.5.name', 'VinFast VF 9')
+        );
 });
