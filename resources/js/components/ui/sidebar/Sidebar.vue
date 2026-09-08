@@ -29,7 +29,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
   <div
     v-if="collapsible === 'none'"
     data-slot="sidebar"
-    :class="cn('bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col', props.class)"
+    :class="cn('bg-sidebar text-sidebar-foreground flex h-svh w-(--sidebar-width) shrink-0 flex-col', props.class)"
     v-bind="$attrs"
   >
     <slot />
@@ -56,7 +56,7 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
   <div
     v-else
-    class="group peer fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear"
+    class="group peer sticky top-0 z-10 flex h-svh shrink-0 w-(--sidebar-width) transition-[margin,width] duration-200 ease-linear"
     data-slot="sidebar"
     :data-state="state"
     :data-collapsible="state === 'collapsed' ? collapsible : ''"
@@ -64,8 +64,8 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
     :data-side="side"
     :class="cn(
       side === 'left'
-        ? 'left-0 data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
-        : 'right-0 data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
+        ? 'data-[collapsible=offcanvas]:-ml-[var(--sidebar-width)]'
+        : 'data-[collapsible=offcanvas]:-mr-[var(--sidebar-width)]',
       variant === 'floating' || variant === 'inset'
         ? 'p-2 data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
         : 'data-[collapsible=icon]:w-(--sidebar-width-icon) data-[side=left]:border-r data-[side=right]:border-l',
