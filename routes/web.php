@@ -13,6 +13,7 @@ use App\Http\Controllers\VehicleController;
 use App\Http\Controllers\Teams\TeamInvitationController;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureTeamMembership;
+use App\Models\Vehicle;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
