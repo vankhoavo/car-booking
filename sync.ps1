@@ -29,7 +29,7 @@ function Read-DotEnv([string] $Path) {
         return $values
     }
 
-    foreach ($line in Get-Content $Path) {
+    foreach ($line in Get-Content -Path $Path -Encoding UTF8) {
         $trimmed = $line.Trim()
         if (-not $trimmed -or $trimmed.StartsWith('#')) {
             continue
@@ -54,7 +54,7 @@ function Get-ValueOrPrompt([hashtable] $EnvValues, [string] $Key, [string] $Prom
         return $existing
     }
 
-    if ($EnvValues.ContainsKey($Key)) {
+    if ($EnvValues.ContainsKey($Key) -and $EnvValues[$Key] -ne '') {
         return $EnvValues[$Key]
     }
 
@@ -90,7 +90,7 @@ New-Item -ItemType Directory -Path $syncDir -Force | Out-Null
 
 Write-Host ''
 Write-Host '=== Car Booking: local-to-cloud ===' -ForegroundColor Cyan
-Write-Host "Scope: $Scope"
+Write-Host "Phạm vi: $Scope"
 Write-Host ''
 
 Require-Command 'git'
@@ -105,7 +105,7 @@ if ($Scope -in @('full', 'code')) {
 
     $status = @(git status --porcelain)
     if ($status.Count -gt 0) {
-        Fail "Working tree chưa sạch. Hãy commit/stash thay đổi trước khi đồng bộ để tránh deploy code chưa được kiểm soát."
+        Fail 'Working tree chưa sạch. Hãy commit hoặc stash thay đổi trước khi đồng bộ.'
     }
 
     Write-Host 'Kiểm tra Laravel Cloud CLI...' -ForegroundColor Yellow
@@ -132,7 +132,7 @@ if ($Scope -in @('full', 'database')) {
     Write-Host "Local : $localUser@$localHost`:$localPort/$localName"
     Write-Host "Cloud : $cloudUser@$cloudHost`:$cloudPort/$cloudName"
     Write-Host ''
-    Write-Warning 'FULL DATABASE SYNC sẽ ghi dữ liệu local vào Cloud và có thể thay thế dữ liệu hiện có trong các bảng trùng tên.'
+    Write-Warning 'FULL DATABASE SYNC sẽ ghi dữ liệu local vào Cloud và có thể thay thế dữ liệu hiện có.'
     $confirm = Read-Host 'Gõ SYNC để tiếp tục'
     if ($confirm -ne 'SYNC') {
         Fail 'Đã huỷ đồng bộ database.'
@@ -177,14 +177,15 @@ if ($Scope -in @('full', 'database')) {
             '--default-character-set=utf8mb4',
             $cloudName
         )
-        $commandLine = 'mysql ' + (($mysqlArgs | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' ') + ' < "' + $dumpFile + '"'
+        $escapedArgs = ($mysqlArgs | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
+        $commandLine = 'mysql ' + $escapedArgs + ' < "' + $dumpFile + '"'
         Invoke-External 'cmd.exe' @('/d', '/s', '/c', $commandLine)
     }
     finally {
         Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
     }
 
-    Write-Host '3/3 Database sync hoàn tất.' -ForegroundColor Green
+    Write-Host '3/3 Đồng bộ database hoàn tất.' -ForegroundColor Green
 }
 
 if ($Scope -in @('full', 'code')) {
