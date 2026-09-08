@@ -25,15 +25,11 @@ function Require-Command([string] $Name) {
 
 function Read-DotEnv([string] $Path) {
     $values = @{}
-    if (-not (Test-Path $Path)) {
-        return $values
-    }
+    if (-not (Test-Path $Path)) { return $values }
 
     foreach ($line in Get-Content -Path $Path -Encoding UTF8) {
         $trimmed = $line.Trim()
-        if (-not $trimmed -or $trimmed.StartsWith('#')) {
-            continue
-        }
+        if (-not $trimmed -or $trimmed.StartsWith('#')) { continue }
 
         if ($trimmed -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
             $key = $Matches[1]
@@ -50,23 +46,14 @@ function Read-DotEnv([string] $Path) {
 
 function Get-ValueOrPrompt([hashtable] $EnvValues, [string] $Key, [string] $Prompt, [switch] $Secret) {
     $existing = [Environment]::GetEnvironmentVariable($Key)
-    if ($null -ne $existing -and $existing -ne '') {
-        return $existing
-    }
-
-    if ($EnvValues.ContainsKey($Key) -and $EnvValues[$Key] -ne '') {
-        return $EnvValues[$Key]
-    }
+    if ($null -ne $existing -and $existing -ne '') { return $existing }
+    if ($EnvValues.ContainsKey($Key) -and $EnvValues[$Key] -ne '') { return $EnvValues[$Key] }
 
     if ($Secret) {
         $secure = Read-Host -Prompt $Prompt -AsSecureString
         $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-        try {
-            return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr)
-        }
-        finally {
-            [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr)
-        }
+        try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
+        finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
     }
 
     return Read-Host -Prompt $Prompt
@@ -74,9 +61,7 @@ function Get-ValueOrPrompt([hashtable] $EnvValues, [string] $Key, [string] $Prom
 
 function Invoke-External([string] $File, [string[]] $Arguments) {
     & $File @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        Fail "Lệnh '$File' thất bại với mã $LASTEXITCODE."
-    }
+    if ($LASTEXITCODE -ne 0) { Fail "Lệnh '$File' thất bại với mã $LASTEXITCODE." }
 }
 
 function Run-Cloud-Artisan([string] $Command) {
@@ -123,9 +108,6 @@ if ($Scope -in @('full', 'code')) {
     Invoke-External 'cloud' @('list')
 }
 
-# FULL: deploy code first so Cloud runs the same application version that will
-# receive the database migration/seed. CODE: only deploy code. DATABASE: only
-# synchronize the database and then run the remote migration/seed.
 if ($Scope -in @('full', 'code')) {
     Write-Host '1/5 Đẩy main lên GitHub...' -ForegroundColor Yellow
     Invoke-External 'git' @('push', 'origin', 'main')
@@ -202,7 +184,7 @@ if ($Scope -in @('full', 'database')) {
             $cloudName
         )
         $escapedArgs = ($mysqlArgs | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
-        $commandLine = 'mysql ' + $escapedArgs + ' < "' + $dumpFile + '"'
+        $commandLine = "mysql $escapedArgs < `"$dumpFile`""
         Invoke-External 'cmd.exe' @('/d', '/s', '/c', $commandLine)
     }
     finally {
