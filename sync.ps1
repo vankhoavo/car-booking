@@ -30,6 +30,7 @@ function Read-DotEnv([string] $Path) {
     foreach ($line in Get-Content -Path $Path -Encoding UTF8) {
         $trimmed = $line.Trim()
         if (-not $trimmed -or $trimmed.StartsWith('#')) { continue }
+
         if ($trimmed -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
             $key = $Matches[1]
             $value = $Matches[2].Trim()
@@ -39,6 +40,7 @@ function Read-DotEnv([string] $Path) {
             $values[$key] = $value
         }
     }
+
     return $values
 }
 
@@ -53,6 +55,7 @@ function Get-ValueOrPrompt([hashtable] $EnvValues, [string] $Key, [string] $Prom
         try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
         finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
     }
+
     return Read-Host -Prompt $Prompt
 }
 
@@ -161,8 +164,9 @@ if ($Scope -in @('full', 'database')) {
             '--default-character-set=utf8mb4',
             $cloudName
         )
-        $escapedArgs = ($mysqlArgs | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
-        $commandLine = 'mysql ' + $escapedArgs + ' < ' + '"' + $dumpFile + '"'
+        $escapedArgs = ($mysqlArgs | ForEach-Object { [char]34 + $_.Replace([char]34, [char]92 + [char]34) + [char]34 }) -join ' '
+        $quote = [char]34
+        $commandLine = 'mysql {0} < {1}{2}{1}' -f $escapedArgs, $quote, $dumpFile
         Invoke-External 'cmd.exe' @('/d', '/s', '/c', $commandLine)
     }
     finally { Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue }
