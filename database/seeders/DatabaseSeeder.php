@@ -41,7 +41,9 @@ class DatabaseSeeder extends Seeder
 
         foreach ([
             ['name' => 'Toyota Vios', 'brand' => 'Toyota', 'model' => 'Vios', 'type' => 'Sedan', 'seats' => 5, 'description' => 'Xe sedan tiết kiệm, phù hợp di chuyển nội thành và đường dài.', 'image' => null, 'price' => 650000, 'status' => 'available'],
+            ['name' => 'Toyota Corolla Altis', 'brand' => 'Toyota', 'model' => 'Corolla Altis', 'type' => 'Sedan', 'seats' => 5, 'description' => 'Sedan rộng rãi, vận hành ổn định cho công việc và gia đình.', 'image' => null, 'price' => 780000, 'status' => 'available'],
             ['name' => 'Toyota Innova', 'brand' => 'Toyota', 'model' => 'Innova', 'type' => 'MPV', 'seats' => 7, 'description' => 'Không gian rộng, phù hợp gia đình và nhóm nhỏ.', 'image' => null, 'price' => 900000, 'status' => 'available'],
+            ['name' => 'Ford Everest', 'brand' => 'Ford', 'model' => 'Everest', 'type' => 'SUV', 'seats' => 7, 'description' => 'SUV đa dụng, phù hợp đường dài và hành trình nhiều địa hình.', 'image' => null, 'price' => 1200000, 'status' => 'available'],
             ['name' => 'Kia Carnival', 'brand' => 'Kia', 'model' => 'Carnival', 'type' => 'MPV cao cấp', 'seats' => 7, 'description' => 'Không gian cao cấp, thoải mái cho chuyến đi dài.', 'image' => null, 'price' => 1450000, 'status' => 'available'],
             ['name' => 'VinFast VF 9', 'brand' => 'VinFast', 'model' => 'VF 9', 'type' => 'SUV điện', 'seats' => 7, 'description' => 'SUV điện cao cấp, vận hành êm ái.', 'image' => null, 'price' => 1800000, 'status' => 'available'],
         ] as $vehicle) {
