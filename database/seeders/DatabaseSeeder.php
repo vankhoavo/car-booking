@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -16,7 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         User::firstOrCreate(
             ['email' => 'test@example.com'],
-            ['name' => 'Test User', 'role' => 'user', 'password' => fake()->password(16)],
+            ['name' => 'Test User', 'role' => 'user', 'password' => Str::random(32)],
         );
 
         $adminEmail = config('services.admin.email');
