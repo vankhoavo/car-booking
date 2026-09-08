@@ -30,7 +30,6 @@ function Read-DotEnv([string] $Path) {
     foreach ($line in Get-Content -Path $Path -Encoding UTF8) {
         $trimmed = $line.Trim()
         if (-not $trimmed -or $trimmed.StartsWith('#')) { continue }
-
         if ($trimmed -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
             $key = $Matches[1]
             $value = $Matches[2].Trim()
@@ -40,7 +39,6 @@ function Read-DotEnv([string] $Path) {
             $values[$key] = $value
         }
     }
-
     return $values
 }
 
@@ -55,7 +53,6 @@ function Get-ValueOrPrompt([hashtable] $EnvValues, [string] $Key, [string] $Prom
         try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
         finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
     }
-
     return Read-Host -Prompt $Prompt
 }
 
@@ -66,11 +63,7 @@ function Invoke-External([string] $File, [string[]] $Arguments) {
 
 function Run-Cloud-Artisan([string] $Command) {
     Write-Host "Cloud Artisan: $Command" -ForegroundColor Yellow
-    Invoke-External 'cloud' @(
-        'command:run',
-        'production',
-        '--cmd=' + $Command
-    )
+    Invoke-External 'cloud' @('command:run', 'production', '--cmd=' + $Command)
 }
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -89,20 +82,14 @@ Write-Host ''
 
 Require-Command 'git'
 
-if ($Scope -in @('full', 'code', 'database')) {
-    Require-Command 'cloud'
-}
+if ($Scope -in @('full', 'code', 'database')) { Require-Command 'cloud' }
 
 if ($Scope -in @('full', 'code')) {
     $branch = (git branch --show-current).Trim()
-    if ($branch -ne 'main') {
-        Fail "Script chỉ đồng bộ từ nhánh main. Nhánh hiện tại: '$branch'."
-    }
+    if ($branch -ne 'main') { Fail "Script chỉ đồng bộ từ nhánh main. Nhánh hiện tại: '$branch'." }
 
     $status = @(git status --porcelain)
-    if ($status.Count -gt 0) {
-        Fail 'Working tree chưa sạch. Hãy commit hoặc stash thay đổi trước khi đồng bộ.'
-    }
+    if ($status.Count -gt 0) { Fail 'Working tree chưa sạch. Hãy commit hoặc stash thay đổi trước khi đồng bộ.' }
 
     Write-Host 'Kiểm tra Laravel Cloud CLI...' -ForegroundColor Yellow
     Invoke-External 'cloud' @('list')
@@ -114,7 +101,6 @@ if ($Scope -in @('full', 'code')) {
 
     Write-Host '2/5 Deploy main lên Laravel Cloud...' -ForegroundColor Yellow
     Invoke-External 'cloud' @('deploy')
-
     Write-Host 'Deploy code hoàn tất.' -ForegroundColor Green
 }
 
@@ -140,13 +126,9 @@ if ($Scope -in @('full', 'database')) {
     Write-Host ''
     Write-Warning 'FULL DATABASE SYNC sẽ ghi dữ liệu local vào Cloud và có thể thay thế dữ liệu hiện có.'
     $confirm = Read-Host 'Gõ SYNC để tiếp tục'
-    if ($confirm -ne 'SYNC') {
-        Fail 'Đã huỷ đồng bộ database.'
-    }
+    if ($confirm -ne 'SYNC') { Fail 'Đã huỷ đồng bộ database.' }
 
-    if (Test-Path $dumpFile) {
-        Remove-Item $dumpFile -Force
-    }
+    if (Test-Path $dumpFile) { Remove-Item $dumpFile -Force }
 
     Write-Host '3/5 Export database local...' -ForegroundColor Yellow
     $env:MYSQL_PWD = $localPassword
@@ -165,13 +147,9 @@ if ($Scope -in @('full', 'database')) {
             '--result-file=' + $dumpFile
         )
     }
-    finally {
-        Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
-    }
+    finally { Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue }
 
-    if (-not (Test-Path $dumpFile) -or (Get-Item $dumpFile).Length -eq 0) {
-        Fail 'Không tạo được database dump local.'
-    }
+    if (-not (Test-Path $dumpFile) -or (Get-Item $dumpFile).Length -eq 0) { Fail 'Không tạo được database dump local.' }
 
     Write-Host '4/5 Import database vào Cloud...' -ForegroundColor Yellow
     $env:MYSQL_PWD = $cloudPassword
@@ -184,25 +162,22 @@ if ($Scope -in @('full', 'database')) {
             $cloudName
         )
         $escapedArgs = ($mysqlArgs | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
-        $commandLine = "mysql $escapedArgs < `"$dumpFile`""
+        $commandLine = 'mysql ' + $escapedArgs + ' < ' + '"' + $dumpFile + '"'
         Invoke-External 'cmd.exe' @('/d', '/s', '/c', $commandLine)
     }
-    finally {
-        Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue
-    }
+    finally { Remove-Item Env:MYSQL_PWD -ErrorAction SilentlyContinue }
 
     Write-Host 'Database import hoàn tất.' -ForegroundColor Green
 
-    Write-Host '5/5 Chạy migrate và seed trên Laravel Cloud...' -ForegroundColor Yellow
-    Run-Cloud-Artisan 'php artisan migrate --force'
-    Run-Cloud-Artisan 'php artisan db:seed --force'
-
-    Write-Host 'Migrate + seed hoàn tất.' -ForegroundColor Green
+    if ($Scope -eq 'full') {
+        Write-Host '5/5 Chạy migrate và seed trên Laravel Cloud...' -ForegroundColor Yellow
+        Run-Cloud-Artisan 'php artisan migrate --force'
+        Run-Cloud-Artisan 'php artisan db:seed --force'
+        Write-Host 'Migrate + seed hoàn tất.' -ForegroundColor Green
+    }
 }
 
-if (Test-Path $dumpFile) {
-    Remove-Item $dumpFile -Force
-}
+if (Test-Path $dumpFile) { Remove-Item $dumpFile -Force }
 
 Write-Host ''
 Write-Host '=== SYNC HOÀN TẤT ===' -ForegroundColor Green
